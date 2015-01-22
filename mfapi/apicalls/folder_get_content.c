@@ -87,22 +87,15 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
             }
         }
 
-        if (folderkey == NULL) {
-            api_call = mfconn_create_signed_get(conn, 0,
-                                                "folder/get_content.php",
-                                                "?content_type=%s"
-                                                "&chunk_size=400"
-                                                "&response_format=json",
-                                                content_type);
-        } else {
-            api_call = mfconn_create_signed_get(conn, 0,
-                                                "folder/get_content.php",
-                                                "?folder_key=%s"
-                                                "&content_type=%s"
-                                                "&chunk_size=400"
-                                                "&response_format=json",
-                                                folderkey, content_type);
-        }
+        if(folderkey == NULL) folderkey = "myfiles";
+
+        api_call = mfconn_create_signed_get(conn, 0,
+                                            "folder/get_content.php",
+                                            "?folder_key=%s"
+                                            "&content_type=%s"
+                                            "&chunk_size=400"
+                                            "&response_format=json",
+                                             folderkey, content_type);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;
