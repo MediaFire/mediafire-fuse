@@ -87,21 +87,22 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
             }
         }
 
-        if(folderkey == NULL) folderkey = "myfiles";
+        if (folderkey == NULL)
+            folderkey = "myfiles";
 
         /*
-            TODO:   there is a temporary hard limit of 400 items on this
-                    call for two reasons:
+           TODO:   there is a temporary hard limit of 400 items on this
+           call for two reasons:
 
-                    1)  the REST API will be changed to improve performance
-                        of > 400 items.  the official documentation says
-                        that 1000 items is supported but theres a server-side
-                        fix up that needs to take place first.
+           1)  the REST API will be changed to improve performance
+           of > 400 items.  the official documentation says
+           that 1000 items is supported but theres a server-side
+           fix up that needs to take place first.
 
-                    2)  the 'more_chunks' property needs to be honored in
-                        order to fetch multiples of chunk_size.  the servers
-                        support this but it's not implmented here yet.
-        */
+           2)  the 'more_chunks' property needs to be honored in
+           order to fetch multiples of chunk_size.  the servers
+           support this but it's not implmented here yet.
+         */
 
         api_call = mfconn_create_signed_get(conn, 0,
                                             "folder/get_content.php",
@@ -109,7 +110,7 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
                                             "&content_type=%s"
                                             "&chunk_size=400"
                                             "&response_format=json",
-                                             folderkey, content_type);
+                                            folderkey, content_type);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;
@@ -232,7 +233,9 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
                 j_obj = json_object_get(data, "created");
                 if (j_obj != NULL) {
                     memset(&tm, 0, sizeof(struct tm));
-                    ret = (char *) strptime(json_string_value(j_obj), "%F %T", &tm);
+                    ret =
+                        (char *)strptime(json_string_value(j_obj), "%F %T",
+                                         &tm);
                     if (ret[0] == '\0') {
                         folder_set_created(tmp_folder, mktime(&tm));
                     }
