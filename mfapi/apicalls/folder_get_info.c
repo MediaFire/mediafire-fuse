@@ -16,8 +16,10 @@
  * Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  */
-
+#ifndef __OpenBSD__
 #define _XOPEN_SOURCE           // for strptime
+#endif
+
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,7 +158,7 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     created = json_object_get(node, "created");
     if (created != NULL) {
         memset(&tm, 0, sizeof(struct tm));
-        ret = strptime(json_string_value(created), "%F %T", &tm);
+        ret = (char *) strptime(json_string_value(created), "%F %T", &tm);
         if (ret[0] != '\0') {
             fprintf(stderr, "cannot parse time\n");
         } else {

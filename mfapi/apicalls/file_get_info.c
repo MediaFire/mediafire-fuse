@@ -17,7 +17,10 @@
  *
  */
 
+#ifndef __OpenBSD__
 #define _XOPEN_SOURCE           // for strptime
+#endif
+
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +153,7 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     obj = json_object_get(node, "created");
     if (obj != NULL) {
         memset(&tm, 0, sizeof(struct tm));
-        ret = strptime(json_string_value(obj), "%F %T", &tm);
+        ret = (char *) strptime(json_string_value(obj), "%F %T", &tm);
         if (ret[0] != '\0') {
             fprintf(stderr, "cannot parse time\n");
         } else {
