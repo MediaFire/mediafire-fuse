@@ -36,7 +36,7 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
     const char     *file_path;
     char           *temp;
     char           *file_name;
-    char           *upload_key;
+    char           *upload_key = NULL;
     FILE           *fh;
 
     if (mfshell == NULL)
