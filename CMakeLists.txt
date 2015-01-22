@@ -28,8 +28,10 @@ include_directories(${CURL_INCLUDE_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmake)
 
-find_package(FUSE 2.9 REQUIRED)
-include_directories(${FUSE_INCLUDE_DIRS})
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
+       find_package(FUSE 2.9 REQUIRED)
+       include_directories(${FUSE_INCLUDE_DIRS})
+endif()
 
 find_package(Jansson 2.5 REQUIRED)
 include_directories(${JANSSON_INCLUDE_DIRS})
