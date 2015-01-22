@@ -89,6 +89,20 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
 
         if(folderkey == NULL) folderkey = "myfiles";
 
+        /*
+            TODO:   there is a temporary hard limit of 400 items on this
+                    call for two reasons:
+
+                    1)  the REST API will be changed to improve performance
+                        of > 400 items.  the official documentation says
+                        that 1000 items is supported but theres a server-side
+                        fix up that needs to take place first.
+
+                    2)  the 'more_chunks' property needs to be honored in
+                        order to fetch multiples of chunk_size.  the servers
+                        support this but it's not implmented here yet.
+        */
+
         api_call = mfconn_create_signed_get(conn, 0,
                                             "folder/get_content.php",
                                             "?folder_key=%s"
