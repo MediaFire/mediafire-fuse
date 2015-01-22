@@ -807,7 +807,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
-            retval = mfconn_api_file_update(ctx->conn, key, newname);
+            retval = mfconn_api_file_update(ctx->conn, key, newname, NULL);
         } else {
             retval = mfconn_api_folder_update(ctx->conn, key, newname);
         }
@@ -1113,17 +1113,74 @@ int mediafirefs_access(const char *path, int mode)
 
 int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 {
+    time_t      since_epoch;
+    struct tm   local_time;
+    static int  b_tzset = 0;            // has tzset() been called
+    char        print_time[24];         // buf for print friendly local time
+    bool        is_file = 0;
+    const char  *key = NULL;
+    int         retval;
+
+    struct      mediafirefs_context_private *ctx;
+
     (void)path;
-    (void)tv;
-    struct mediafirefs_context_private *ctx;
+
 
     ctx = fuse_get_context()->private_data;
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    fprintf(stderr, "utimens not implemented\n");
+    is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, path);
+
+    // make sure this is a file
+    if(is_file == 0)
+    {
+        fprintf(stderr, "utimens not implemented for folders\n");
+        pthread_mutex_unlock(&(ctx->mutex));
+
+        return -ENOSYS;
+    }
+
+    // look up the key
+    key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
+    if (key == NULL) {
+        fprintf(stderr, "key is NULL\n");
+        pthread_mutex_unlock(&(ctx->mutex));
+        return -ENOENT;
+    }
+
+    // call tzset if needed
+    if(b_tzset != 1)
+    {
+        tzset();
+        b_tzset = 1;
+    }
+
+    // we only care about mtime (not atime) and seconds because the
+    // could doesn't handle nanoseconds
+    memcpy(&since_epoch, &tv[1].tv_sec, sizeof(time_t));
+
+    if(localtime_r((const time_t*)&since_epoch, &local_time) == NULL)
+    {
+        fprintf(stderr, "utimens not implemented\n");
+        pthread_mutex_unlock(&(ctx->mutex));
+
+        return -ENOSYS;
+    }
+
+    memset(print_time, 0, sizeof(print_time));
+    strftime(print_time, sizeof(print_time) - 1, "%F %T", &local_time);
+
+    fprintf(stderr,"utimens file set: %s\n", print_time);
+
+    retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time);
+    if(retval == -1)
+    {
+        pthread_mutex_unlock(&(ctx->mutex));
+        return -ENOENT;
+    }
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOSYS;
+    return 0;
 }
