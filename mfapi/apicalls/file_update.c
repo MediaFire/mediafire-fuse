@@ -26,13 +26,13 @@
 #include "../apicalls.h"        // IWYU pragma: keep
 
 int mfconn_api_file_update(mfconn * conn, const char *quickkey,
-                           const char *filename)
+                           const char *filename,const char *mtime)
 {
     const char     *api_call;
     int             retval;
     mfhttp         *http;
     int             i;
-    char           *filename_urlenc;
+    char           *filename_urlenc = NULL;
 
     if (conn == NULL)
         return -1;
@@ -43,24 +43,61 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
     if (strlen(quickkey) != 15)
         return -1;
 
-    if (filename == NULL)
+    if (filename == NULL && mtime == NULL)
         return -1;
 
-    if (strlen(filename) < 3 || strlen(filename) > 255)
-        return -1;
+    if(filename != NULL)
+    {
+        if (strlen(filename) < 3 || strlen(filename) > 255)
+            return -1;
+    }
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
-        filename_urlenc = urlencode(filename);
-        if (filename_urlenc == NULL) {
-            fprintf(stderr, "urlencode failed\n");
-            return -1;
+
+        if(filename != NULL)
+        {
+            filename_urlenc = urlencode(filename);
+            if (filename_urlenc == NULL) {
+                fprintf(stderr, "urlencode failed\n");
+                return -1;
+            }
         }
-        api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
-                                            "?quick_key=%s"
-                                            "&filename=%s"
-                                            "&response_format=json", quickkey,
-                                            filename_urlenc);
-        free(filename_urlenc);
+
+        // this is the ugly way of doing it
+        if(filename != NULL && mtime != NULL)
+        {
+             api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
+                                                "?quick_key=%s"
+                                                "&filename=%s"
+                                                "&mtime=%s"
+                                                "&response_format=json",
+                                                quickkey,
+                                                filename_urlenc,
+                                                mtime);
+        }
+
+        if(filename == NULL && mtime != NULL)
+        {
+            api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
+                                                "?quick_key=%s"
+                                                "&mtime=%s"
+                                                "&response_format=json",
+                                                quickkey,
+                                                mtime);
+        }
+
+        if(filename != NULL && mtime == NULL)
+        {
+            api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
+                                                "?quick_key=%s"
+                                                "&filename=%s"
+                                                "&response_format=json",
+                                                quickkey,
+                                                filename_urlenc);
+        }
+
+        if(filename_urlenc != NULL) free(filename_urlenc);
+
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;
