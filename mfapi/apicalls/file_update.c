@@ -47,7 +47,7 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
         return -1;
 
     if (filename != NULL) {
-        if (strlen(filename) < 3 || strlen(filename) > 255)
+        if (strlen(filename) < 1 || strlen(filename) > 255)
             return -1;
     }
 
