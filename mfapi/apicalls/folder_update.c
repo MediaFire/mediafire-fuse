@@ -46,7 +46,7 @@ int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
     if (foldername == NULL)
         return -1;
 
-    if (strlen(foldername) < 3 || strlen(foldername) > 255)
+    if (strlen(foldername) < 1 || strlen(foldername) > 255)
         return -1;
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
