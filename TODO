@@ -41,4 +41,4 @@ bounty available for the item.
    stops at 1000 (max value for chunk_size param)
  - proper versioning of the directory cache
  - call user/get_info to populate statvfs struct for returning free space
- - replace (*utimens) stub with REST API call to file/update 'mtime'
+ - add support for mtime on folders
