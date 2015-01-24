@@ -24,6 +24,12 @@ this software:
 
 	apt-get install cmake build-essential libjansson-dev libcurl4-openssl-dev libfuse-dev libssl-dev
 
+On Red Hat and derivatives like Fedora you need the following packages to build
+this software:
+
+	yum groupinstall "Development Tools" "Development Libraries"
+	yum install cmake jansson-devel libcurl libcurl-devel fuse-devel openssl-devel
+
 On FreeBSD you need:
 
 	pkg install jansson cmake curl fuse fusefs-libs
