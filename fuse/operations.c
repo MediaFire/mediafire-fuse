@@ -809,7 +809,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
         if (is_file) {
             retval = mfconn_api_file_update(ctx->conn, key, newname, NULL);
         } else {
-            retval = mfconn_api_folder_update(ctx->conn, key, newname);
+            retval = mfconn_api_folder_update(ctx->conn, key, newname, NULL);
         }
         if (retval != 0) {
             if (is_file) {
@@ -1131,6 +1131,7 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 
     is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, path);
 
+/*
     // make sure this is a file
     if (is_file == 0) {
         fprintf(stderr, "utimens not implemented for folders\n");
@@ -1138,6 +1139,8 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 
         return -ENOSYS;
     }
+*/
+
     // look up the key
     key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
     if (key == NULL) {
@@ -1166,7 +1169,12 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 
     fprintf(stderr, "utimens file set: %s\n", print_time);
 
-    retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time);
+    if(is_file) {
+        retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time);
+    } else {
+        retval = mfconn_api_folder_update(ctx->conn, key, NULL, print_time);
+    }
+
     if (retval == -1) {
         pthread_mutex_unlock(&(ctx->mutex));
         return -ENOENT;
