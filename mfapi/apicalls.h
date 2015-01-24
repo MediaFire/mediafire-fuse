@@ -107,7 +107,8 @@ int             mfconn_api_folder_move(mfconn * conn,
                                        const char *folder_key_dst);
 
 int             mfconn_api_folder_update(mfconn * conn, const char *folder_key,
-                                         const char *foldername);
+                                         const char *foldername,
+                                         const char *mtime);
 
 int             mfconn_api_user_get_info(mfconn * conn);
 

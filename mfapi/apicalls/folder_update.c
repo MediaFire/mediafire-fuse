@@ -26,13 +26,13 @@
 #include "../apicalls.h"        // IWYU pragma: keep
 
 int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
-                             const char *foldername)
+                             const char *foldername, const char *mtime)
 {
     const char     *api_call;
     int             retval;
     mfhttp         *http;
     int             i;
-    char           *foldername_urlenc;
+    char           *foldername_urlenc = NULL;
 
     if (conn == NULL)
         return -1;
@@ -43,24 +43,52 @@ int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
     if (strlen(folder_key) != 13)
         return -1;
 
-    if (foldername == NULL)
+    if (foldername == NULL && mtime == NULL)
         return -1;
 
-    if (strlen(foldername) < 1 || strlen(foldername) > 255)
-        return -1;
+    if (foldername != NULL) {
+        if (strlen(foldername) < 1 || strlen(foldername) > 255)
+            return -1;
+    }
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
-        foldername_urlenc = urlencode(foldername);
-        if (foldername_urlenc == NULL) {
-            fprintf(stderr, "urlencode failed\n");
-            return -1;
+
+        if (foldername != NULL) {
+            foldername_urlenc = urlencode(foldername);
+            if (foldername_urlenc == NULL) {
+                fprintf(stderr, "urlencode failed\n");
+                return -1;
+            }
         }
-        api_call = mfconn_create_signed_get(conn, 0, "folder/update.php",
-                                            "?folder_key=%s"
-                                            "&foldername=%s"
-                                            "&response_format=json",
-                                            folder_key, foldername_urlenc);
-        free(foldername_urlenc);
+
+        if (foldername != NULL && mtime != NULL) {
+            api_call = mfconn_create_signed_get(conn, 0, "folder/update.php",
+                                                "?folder_key=%s"
+                                                "&foldername=%s"
+                                                "&mtime=%s"
+                                                "&response_format=json",
+                                                folder_key, foldername_urlenc,
+                                                mtime);
+        }
+
+        if (foldername != NULL && mtime == NULL) {
+            api_call = mfconn_create_signed_get(conn, 0, "folder/update.php",
+                                                "?folder_key=%s"
+                                                "&foldername=%s"
+                                                "&response_format=json",
+                                                folder_key, foldername_urlenc);
+        }
+
+        if (foldername == NULL && mtime != NULL) {
+            api_call = mfconn_create_signed_get(conn, 0, "folder/update.php",
+                                                "?folder_key=%s"
+                                                "&mtime=%s"
+                                                "&response_format=json",
+                                                folder_key, mtime);
+        }
+
+        if (foldername_urlenc != NULL)
+            free(foldername_urlenc);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;
