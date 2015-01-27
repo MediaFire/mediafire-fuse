@@ -23,11 +23,12 @@
 
 #include "../../utils/http.h"
 #include "../mfconn.h"
+#include "../user.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
-static int      _decode_user_get_info(mfhttp * conn, void *data);
+static int      _decode_user_get_info(mfhttp * conn, void * data);
 
-int mfconn_api_user_get_info(mfconn * conn)
+int mfconn_api_user_get_info(mfconn * conn,mfuser_t * user)
 {
     const char     *api_call;
     int             retval;
@@ -46,7 +47,7 @@ int mfconn_api_user_get_info(mfconn * conn)
     }
 
     http = http_create();
-    retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);
+    retval = http_get_buf(http, api_call, _decode_user_get_info, (void *)user);
     http_destroy(http);
     mfconn_update_secret_key(conn);
 
@@ -55,18 +56,23 @@ int mfconn_api_user_get_info(mfconn * conn)
     return retval;
 }
 
-static int _decode_user_get_info(mfhttp * conn, void *data)
+static int _decode_user_get_info(mfhttp * conn, void * data)
 {
+    mfuser_t       *user;
     json_error_t    error;
     json_t         *root;
     json_t         *node;
     json_t         *email;
     json_t         *first_name;
     json_t         *last_name;
+    json_t         *used_storage_size;
+    json_t         *storage_limit;
     int             retval;
 
-    if (data != NULL)
+    if (data == NULL)
         return -1;
+    else
+        user = (mfuser_t *)data;
 
     root = http_parse_buf_json(conn, 0, &error);
 
@@ -91,13 +97,32 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
     if (email != NULL)
         printf("Email: %s\n\r", json_string_value(email));
 
+    // parse and store first name
     first_name = json_object_get(node, "first_name");
-    if (first_name != NULL)
-        printf("Name: %s ", json_string_value(first_name));
+    if (first_name != NULL) {
 
+        user_set_first_name(user,(json_string_value(first_name)));
+    }
+
+    // parse and store last name
     last_name = json_object_get(node, "last_name");
-    if (node != NULL)
-        printf("%s", json_string_value(last_name));
+    if (last_name != NULL) {
+
+        user_set_last_name(user,(json_string_value(last_name)));
+    }
+
+    // parse and store amount of storage space used
+    used_storage_size = json_object_get(node, "used_storage_size");
+    if (used_storage_size != NULL) {
+
+        user_set_space_used(user,(json_string_value(used_storage_size)));
+    }
+
+    storage_limit = json_object_get(node, "storage_limit");
+    if (storage_limit != NULL) {
+
+        user_set_space_total(user,(json_string_value(storage_limit)));
+    }
 
     printf("\n\r");
 

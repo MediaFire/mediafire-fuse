@@ -17,40 +17,30 @@
  *
  */
 
-#include <stdio.h>
+#ifndef __MFAPI_USER_H__
+#define __MFAPI_USER_H__
 
-#include "../../mfapi/apicalls.h"
-#include "../../mfapi/user.h"
-#include "../mfshell.h"
-#include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_whoami(mfshell * mfshell, int argc, char *const argv[])
-{
-    mfuser_t    *user;
+typedef struct  _mfuser_s   mfuser_t;
 
-    (void)argv;
-    int             retval;
+mfuser_t*       user_alloc(void);
 
-    if (mfshell == NULL) {
-        fprintf(stderr, "mfshell is NULL\n");
-        return -1;
-    }
+void            user_free(mfuser_t *user);
 
-    if (mfshell->conn == NULL) {
-        fprintf(stderr, "conn is NULL\n");
-        return -1;
-    }
+int             user_get_first_name(mfuser_t *user,char *buf,int buf_sz);
 
-    if (argc != 1) {
-        fprintf(stderr, "Invalid number of arguments\n");
-        return -1;
-    }
+int             user_set_first_name(mfuser_t *user,const char *first_name);
 
-    user = user_alloc();
+int             user_get_last_name(mfuser_t *user,char *buf,int buf_sz);
 
-    retval = mfconn_api_user_get_info(mfshell->conn,user);
+int             user_set_last_name(mfuser_t *user,const char *last_name);
 
-    if(user != NULL) user_free(user);
+int             user_get_space_total(mfuser_t *user,char *buf,int buf_sz);
 
-    return retval;
-}
+int             user_set_space_total(mfuser_t *user,const char *bytes_total);
+
+int             user_get_space_used(mfuser_t *user,char *buf,int buf_sz);
+
+int             user_set_space_used(mfuser_t *user,const char *bytes_used);
+
+#endif

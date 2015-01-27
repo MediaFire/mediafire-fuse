@@ -40,4 +40,3 @@ bounty available for the item.
  - call folder/get_content in a loop until more_chunks=no because it currently
    stops at 1000 (max value for chunk_size param)
  - proper versioning of the directory cache
- - call user/get_info to populate statvfs struct for returning free space
