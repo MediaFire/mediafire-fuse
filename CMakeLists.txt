@@ -39,6 +39,7 @@ include_directories(${JANSSON_INCLUDE_DIRS})
 add_library(mfapi OBJECT
 	mfapi/mfconn.c
 	mfapi/file.c
+	mfapi/user.c
 	mfapi/folder.c
 	mfapi/patch.c
 	mfapi/apicalls.c

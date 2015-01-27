@@ -38,7 +38,9 @@
 #include <stdbool.h>
 #include <time.h>
 #include <openssl/sha.h>
+#include <sys/statvfs.h>
 
+#include "../mfapi/user.h"
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
 #include "../utils/stringv.h"
@@ -906,19 +908,66 @@ int mediafirefs_truncate(const char *path, off_t length)
 
 int mediafirefs_statfs(const char *path, struct statvfs *buf)
 {
+    // TODO:    add mfuser to ctx and store it accross the system.
+    //          instantiating it every time on a per-instance is not ideal.
+
+    mfuser_t       *user = NULL;
+
+    char            space_total[128];
+    char            space_used[128];
+
+    uintmax_t       bytes_total = 0;
+    uintmax_t       bytes_used = 0;
+    uintmax_t       bytes_free = 0;
+
     (void)path;
     (void)buf;
     struct mediafirefs_context_private *ctx;
 
     ctx = fuse_get_context()->private_data;
 
+    // init buffers before we enter critical region (primitive guard)
+    memset(space_total, 0, sizeof(space_total));
+    memset(space_used, 0, sizeof(space_used));
+
     pthread_mutex_lock(&(ctx->mutex));
 
-    fprintf(stderr, "statfs not implemented\n");
+    user = user_alloc();
+    mfconn_api_user_get_info(ctx->conn, user);
+
+    user_get_space_total(user, space_total, 128);
+    user_get_space_used(user, space_used, 128);
+
+    if (user != NULL)
+        user_free(user);
+
+    bytes_total = atoll(space_total);
+    bytes_used = atoll(space_used);
+
+    if (bytes_total == 0) {
+
+        pthread_mutex_unlock(&(ctx->mutex));
+        return -ENOSYS;         // returning -ENOENT might make more sense
+    }
+
+    bytes_free = bytes_total - bytes_used;
+
+    fprintf(stderr, "account size: %ju bytes\n", bytes_total);
+    fprintf(stderr, "account used: %ju bytes\n", bytes_used);
+    fprintf(stderr, "account free: %ju bytes\n", bytes_free);
+
+    // there is no block size on the remote so we will fake it with a
+    // block size of 64k.  FUSE requires that block size be a multiple
+    // of 4096 bytes (4k)
+    buf->f_bsize = 65536;
+    buf->f_frsize = 65536;
+    buf->f_blocks = (bytes_total / 65535);
+    buf->f_bfree = (bytes_free / 65536);
+    buf->f_bavail = (bytes_free / 65536);
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOSYS;
+    return 0;
 }
 
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
@@ -1130,16 +1179,6 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
     pthread_mutex_lock(&(ctx->mutex));
 
     is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, path);
-
-/*
-    // make sure this is a file
-    if (is_file == 0) {
-        fprintf(stderr, "utimens not implemented for folders\n");
-        pthread_mutex_unlock(&(ctx->mutex));
-
-        return -ENOSYS;
-    }
-*/
 
     // look up the key
     key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);

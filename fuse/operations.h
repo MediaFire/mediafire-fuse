@@ -23,6 +23,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "../mfapi/mfconn.h"
 #include "hashtbl.h"
@@ -32,7 +33,6 @@ struct fuse_conn_info;
 struct fuse_file_info;
 struct stat;
 struct statvfs;
-struct timespec;
 
 struct mediafirefs_context_private {
     mfconn         *conn;
