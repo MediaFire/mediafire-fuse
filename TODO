@@ -40,3 +40,5 @@ bounty available for the item.
  - call folder/get_content in a loop until more_chunks=no because it currently
    stops at 1000 (max value for chunk_size param)
  - proper versioning of the directory cache
+ - add mfuser_t to global ctx so that statvfs information can be cached
+   with a dirty-clean flag to be toggled by device/get_changes results
