@@ -78,11 +78,11 @@ struct h_entry {
     /* the containing folder */
     union {
         /* during runtime this is a pointer to the containing h_entry struct */
-        struct h_entry *parent;
+        struct h_entry *entry;
         /* when storing on disk, this is the offset of the stored h_entry
          * struct */
-        uint64_t        parent_offs;
-    };
+        uint64_t        offs;
+    } parent;
 
     /********************
      * only for folders *
@@ -253,9 +253,9 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
 
         for (j = 0; j < tree->bucket_lens[i]; j++) {
             /* save the old value of the parent to restore it later */
-            tmp_parent = tree->buckets[i][j]->parent;
+            tmp_parent = tree->buckets[i][j]->parent.entry;
             if (tmp_parent == &(tree->root)) {
-                tree->buckets[i][j]->parent_offs = 0;
+                tree->buckets[i][j]->parent.offs = 0;
             } else {
                 bucket_id = base36_decode_triplet(tmp_parent->key);
                 found = false;
@@ -270,7 +270,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
                             tree->buckets[i][j]->key);
                     return -1;
                 }
-                tree->buckets[i][j]->parent_offs =
+                tree->buckets[i][j]->parent.offs =
                     integer_buckets[bucket_id][k];
             }
 
@@ -283,7 +283,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
             }
 
             /* restore original value for parent */
-            tree->buckets[i][j]->parent = tmp_parent;
+            tree->buckets[i][j]->parent.entry = tmp_parent;
         }
     }
 
@@ -380,8 +380,8 @@ folder_tree    *folder_tree_load(FILE * stream, const char *filecache)
      * into the hashtable */
     for (i = 1; i < num_hts; i++) {
         /* the parent of this entry is at the given offset in the array */
-        parent = ordered_entries[ordered_entries[i]->parent_offs];
-        ordered_entries[i]->parent = parent;
+        parent = ordered_entries[ordered_entries[i]->parent.offs];
+        ordered_entries[i]->parent.entry = parent;
 
         /* use the parent information to populate the array of children */
         parent->num_children++;
@@ -882,7 +882,7 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
     /* Entry was found, so remove the entry from the children of the old
      * parent and add it to the children of the new parent */
 
-    old_parent = entry->parent;
+    old_parent = entry->parent.entry;
 
     /* check whether entry does not have a parent (this is the case for the
      * root node) */
@@ -991,7 +991,7 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
 
     strncpy(new_entry->key, key, sizeof(new_entry->key));
     strncpy(new_entry->name, file_get_name(file), sizeof(new_entry->name));
-    new_entry->parent = new_parent;
+    new_entry->parent.entry = new_parent;
     new_entry->remote_revision = file_get_revision(file);
     new_entry->ctime = file_get_created(file);
     new_entry->fsize = file_get_size(file);
@@ -1065,7 +1065,7 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
         strncpy(new_entry->name, name, sizeof(new_entry->name));
     new_entry->remote_revision = folder_get_revision(folder);
     new_entry->ctime = folder_get_created(folder);
-    new_entry->parent = new_parent;
+    new_entry->parent.entry = new_parent;
     if (old_entry != NULL) {
         new_entry->local_revision = old_revision;
     } else {
@@ -1222,16 +1222,16 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
      * pointers will reference unallocated memory */
     if (entry->num_children > 0) {
         for (i = 0; i < entry->num_children; i++) {
-            if (entry->children[i]->parent == entry) {
+            if (entry->children[i]->parent.entry == entry) {
                 folder_tree_remove(tree, entry->children[i]->key);
             }
         }
     }
 
     /* remove the entry from its parent */
-    parent = entry->parent;
+    parent = entry->parent.entry;
     for (i = 0; i < parent->num_children; i++) {
-        if (entry->parent->children[i] == entry) {
+        if (entry->parent.entry->children[i] == entry) {
             /* move the entries on the right one place to the left */
             memmove(parent->children + i, parent->children + i + 1,
                     sizeof(struct h_entry *) * (parent->num_children - i - 1));
@@ -1631,7 +1631,7 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
     for (k = 0; k < tree->root.num_children; k++) {
         /* only compare pointers and not keys. This relies on keys
          * being unique */
-        if (tree->root.children[k]->parent != &(tree->root)) {
+        if (tree->root.children[k]->parent.entry != &(tree->root)) {
             fprintf(stderr,
                     "root claims that %s is its child but %s doesn't think so\n",
                     tree->root.children[k]->key, tree->root.children[k]->key);
@@ -1658,7 +1658,7 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
             for (k = 0; k < tree->buckets[i][j]->num_children; k++) {
                 /* only compare pointers and not keys. This relies on keys
                  * being unique */
-                if (tree->buckets[i][j]->children[k]->parent !=
+                if (tree->buckets[i][j]->children[k]->parent.entry !=
                     tree->buckets[i][j]) {
                     fprintf(stderr,
                             "%s claims that %s is its child but %s doesn't think so\n",
@@ -1697,11 +1697,11 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
     for (i = 0; i < NUM_BUCKETS; i++) {
         for (j = 0; j < tree->bucket_lens[i]; j++) {
             if (!folder_tree_is_parent_of
-                (tree->buckets[i][j]->parent, tree->buckets[i][j])) {
+                (tree->buckets[i][j]->parent.entry, tree->buckets[i][j])) {
                 fprintf(stderr,
                         "%s claims that %s is its parent but it is not\n",
                         tree->buckets[i][j]->key,
-                        tree->buckets[i][j]->parent->key);
+                        tree->buckets[i][j]->parent.entry->key);
                 if (tree->buckets[i][j]->atime == 0) {
                     /* folder */
                     folder_tree_update_folder_info(tree, conn,
@@ -1733,13 +1733,13 @@ void folder_tree_debug_helper(folder_tree * tree, struct h_entry *ent,
             /* folder */
             fprintf(stderr, "%*s d:%s k:%s p:%s\n", depth + 1, " ",
                     ent->children[i]->name, ent->children[i]->key,
-                    ent->children[i]->parent->key);
+                    ent->children[i]->parent.entry->key);
             folder_tree_debug_helper(tree, ent->children[i], depth + 1);
         } else {
             /* file */
             fprintf(stderr, "%*s f:%s k:%s p:%s\n", depth + 1, " ",
                     ent->children[i]->name, ent->children[i]->key,
-                    ent->children[i]->parent->key);
+                    ent->children[i]->parent.entry->key);
         }
     }
 }

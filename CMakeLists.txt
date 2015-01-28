@@ -10,8 +10,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
 
 if (("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") OR (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") AND (CMAKE_C_COMPILER_VERSION VERSION_GREATER 4.0)))
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
-else()
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
 endif()
 
 # the following is until we learn how to reorder the gcc arguments to correctly link on Ubuntu
