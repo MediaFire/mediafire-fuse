@@ -689,12 +689,16 @@ int folder_tree_getattr(folder_tree * tree, mfconn * conn, const char *path,
         stbuf->st_nlink = entry->num_children + 2;
         stbuf->st_atime = entry->ctime;
         stbuf->st_size = 1024;
+        stbuf->st_blksize = 4096;
+        stbuf->st_blocks = 1;   // assume everything fits into a single block
     } else {
         /* file */
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
         stbuf->st_atime = entry->atime;
         stbuf->st_size = entry->fsize;
+        stbuf->st_blksize = 4096;
+        stbuf->st_blocks = (entry->fsize) / 4096 + 1;
     }
 
     return 0;
