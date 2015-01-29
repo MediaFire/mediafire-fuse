@@ -106,6 +106,22 @@ the `-d` option and send in the generated output on the terminal.
 While the fuse filesystem is not mounted, it is always safe to remove your
 local cache as it will be retrieved again from the remote.
 
+Using /etc/fstab
+================
+
+It is currently not possible to have a mediafire fuse mount be mounted
+automatically because it is not possible to supply the right user credentials
+in `/etc/fstab`. A workaround is to have an entry in `/etc/fstab` like this:
+
+    /usr/bin/mediafire-fuse /mountpoint fuse user,noauto 0 0
+
+And then manually mount like this:
+
+    XDG_CONFIG_HOME=/home/username/.config XDG_CACHE_HOME=/home/username/.cache mount /mountpoint
+
+Where you replace "username" by your username and `/mountpoint` by your
+mountpoint.
+
 TODO
 ====
 

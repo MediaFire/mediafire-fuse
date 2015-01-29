@@ -44,3 +44,9 @@ bounty available for the item.
    with a dirty-clean flag to be toggled by device/get_changes results
  - call upload/check before the shell 'put' command and give the user the
    option to skip,keep,replace
+ - allow to auto mount using /etc/fstab. This requires either a global
+   configuration file or a way to pass the user specific configuration
+   and cache in /etc/fstab. One way would be to move the initialization
+   routines from main.c into the ->init fuse function because that one
+   gets executed with reduced privileges and not as root like the functions
+   from main.c do.
