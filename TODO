@@ -50,3 +50,5 @@ bounty available for the item.
    routines from main.c into the ->init fuse function because that one
    gets executed with reduced privileges and not as root like the functions
    from main.c do.
+ - handle the special scenario where really old files and folder have a
+   revision of zero.
