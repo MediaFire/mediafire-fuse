@@ -43,6 +43,7 @@ struct mfconn {
     int             app_id;
     char           *app_key;
     int             max_num_retries;
+    unsigned int    flags;
 };
 
 mfconn         *mfconn_create(const char *server, const char *username,
@@ -116,6 +117,20 @@ int mfconn_refresh_token(mfconn * conn)
         return -1;
     }
     return 0;
+}
+
+void mfconn_set_flags(mfconn * conn, unsigned int flags)
+{
+    if(conn == NULL) return;
+
+    conn->flags = flags;
+}
+
+unsigned int mfconn_get_flags(mfconn * conn)
+{
+    if(conn == NULL) return 0;
+
+    return conn->flags;
 }
 
 void mfconn_destroy(mfconn * conn)
@@ -441,3 +456,4 @@ int mfconn_upload_poll_for_completion(mfconn * conn, const char *upload_key)
     }
     return 0;
 }
+

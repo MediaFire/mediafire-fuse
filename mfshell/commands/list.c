@@ -57,9 +57,16 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
         return -1;
     }
 
+/*
     for (i = 0; folder_result[i] != NULL; i++) {
         printf("%s %s\n", folder_get_name(folder_result[i]),
                folder_get_key(folder_result[i]));
+    }
+*/
+
+    for (i = 0; folder_result[i] != NULL; i++) {
+        printf("%-15s %s\n", folder_get_key(folder_result[i]),
+        folder_get_name(folder_result[i]));
     }
 
     for (i = 0; folder_result[i] != NULL; i++) {
@@ -73,10 +80,16 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
         mfconn_api_folder_get_content(mfshell->conn, 1,
                                       folder_get_key(mfshell->folder_curr),
                                       NULL, &file_result);
-
+/*
     for (i = 0; file_result[i] != NULL; i++) {
         printf("%s %s\n", file_get_name(file_result[i]),
                file_get_key(file_result[i]));
+    }
+*/
+
+    for (i = 0; file_result[i] != NULL; i++) {
+        printf("%-15s %s\n", file_get_key(file_result[i]),
+        file_get_name(file_result[i]));
     }
 
     for (i = 0; file_result[i] != NULL; i++) {

@@ -25,26 +25,37 @@
 #include <stdio.h>
 #include <curl/curl.h>
 
-typedef struct mfhttp mfhttp;
+#define HTTP_CONN_LAZY_SSL  (1U << 0)
+
+typedef struct mfhttp       mfhttp;
+
+typedef int (*DataHandler)  (mfhttp * conn,void * data);
+
 
 mfhttp         *http_create(void);
+
 void            http_destroy(mfhttp * conn);
-int             http_get_buf(mfhttp * conn, const char *url,
-                             int (*data_handler) (mfhttp * conn, void *data),
-                             void *data);
+
+void            http_set_connect_flags(mfhttp * conn,unsigned int flags);
+
+void            http_set_data_handler(mfhttp * conn,
+                                        DataHandler data_handler,
+                                        void * cb_data);
+
+int             http_get_buf(mfhttp * conn, const char *url);
+
 int             http_post_buf(mfhttp * conn, const char *url,
-                              const char *post_args,
-                              int (*data_handler) (mfhttp * conn, void *data),
-                              void *data);
+                              const char *post_args);
+
 int             http_get_file(mfhttp * conn, const char *url,
                               const char *path);
+
 json_t         *http_parse_buf_json(mfhttp * conn, size_t flags,
                                     json_error_t * error);
+
 int             http_post_file(mfhttp * conn, const char *url, FILE * fh,
                                struct curl_slist **custom_headers,
-                               uint64_t filesize,
-                               int (*data_handler) (mfhttp * conn, void *data),
-                               void *data);
+                               uint64_t filesize);
 
 char           *urlencode(const char *input);
 

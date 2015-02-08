@@ -19,6 +19,7 @@
 #ifndef __MFAPI_MFCONN_H__
 #define __MFAPI_MFCONN_H__
 
+
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -33,6 +34,10 @@ mfconn         *mfconn_create(const char *server, const char *username,
 int             mfconn_refresh_token(mfconn * conn);
 
 void            mfconn_destroy(mfconn * conn);
+
+void            mfconn_set_flags(mfconn * conn, unsigned int flags);
+
+unsigned int    mfconn_get_flags(mfconn * conn);
 
 ssize_t         mfconn_download_direct(mffile * file, const char *local_dir);
 

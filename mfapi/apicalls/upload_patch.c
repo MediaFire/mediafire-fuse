@@ -102,8 +102,17 @@ mfconn_api_upload_patch(mfconn * conn, const char *quickkey,
         free(tmpheader);
 
         http = http_create();
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
+        http_set_data_handler(http, _decode_upload_patch, upload_key);
+
         retval = http_post_file(http, api_call, patch_fh, &custom_headers,
-                                patch_size, _decode_upload_patch, upload_key);
+                                patch_size);
+
         http_destroy(http);
         mfconn_update_secret_key(conn);
 

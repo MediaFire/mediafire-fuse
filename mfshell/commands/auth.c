@@ -22,7 +22,9 @@
 #include <stdbool.h>
 
 #include "../mfshell.h"
+#include "../options.h"
 #include "../../utils/strings.h"
+#include "../../utils/http.h"
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 
@@ -30,6 +32,7 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
 {
     char           *username;
     char           *password;
+    unsigned int    flags = 0;
 
     if (mfshell == NULL)
         return -1;
@@ -60,8 +63,19 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
     if (username == NULL || password == NULL)
         return -1;
 
+    // there's probably a much better way to pass this along but it's
+    // handled deep inside the http layer.
+    if(mfshell->flags & MFOPTS_LAZY_SSL) {
+
+        flags |= HTTP_CONN_LAZY_SSL;
+    }
+
+    // create an auth configuration with a resilience of 3 retries
+    // per API call
     mfshell->conn = mfconn_create(mfshell->server, username, password,
-                                  mfshell->app_id, mfshell->app_key, 3);
+                                    mfshell->app_id, mfshell->app_key, 3);
+
+    mfconn_set_flags(mfshell->conn,flags);
 
     if (mfshell->conn != NULL)
         printf("\n\rAuthentication SUCCESS\n\r");

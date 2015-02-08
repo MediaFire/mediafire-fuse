@@ -117,15 +117,23 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
         }
 
         http = http_create();
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
         if (mode == 0)
-            retval = http_get_buf(http, api_call,
-                                  _decode_folder_get_content_folders,
+            http_set_data_handler(http, _decode_folder_get_content_folders,
                                   (void *)mffolder_result);
         else
-            retval = http_get_buf(http, api_call,
-                                  _decode_folder_get_content_files,
+            http_set_data_handler(http, _decode_folder_get_content_files,
                                   (void *)mffile_result);
+
+        retval = http_get_buf(http, api_call);
+
         http_destroy(http);
+
         mfconn_update_secret_key(conn);
 
         free((void *)api_call);

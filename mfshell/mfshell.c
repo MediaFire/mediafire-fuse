@@ -68,7 +68,8 @@ struct mfcmd    commands[] = {
     {NULL, NULL, NULL, NULL}
 };
 
-mfshell        *mfshell_create(int app_id, char *app_key, char *server)
+mfshell        *mfshell_create(int app_id, char *app_key, char *server,
+                                unsigned int flags)
 {
     mfshell        *shell;
 
@@ -102,6 +103,9 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
 
     // shell commands
     shell->commands = commands;
+
+    // set flags bit mask
+    shell->flags = flags;
 
     return shell;
 }

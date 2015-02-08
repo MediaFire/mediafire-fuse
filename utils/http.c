@@ -47,6 +47,11 @@ struct mfhttp {
     bool            show_progress;
     char            error_buf[CURL_ERROR_SIZE];
     FILE           *stream;
+
+    DataHandler     data_handler;
+    void           *cb_data;
+
+    unsigned int    connect_flags;
 };
 
 /*
@@ -74,7 +79,11 @@ static void http_curl_reset(mfhttp * conn)
     // it should never take 5 seconds to establish a connection to the server
     curl_easy_setopt(conn->curl_handle, CURLOPT_CONNECTTIMEOUT, 5);
 
-    //curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    if(conn->connect_flags & HTTP_CONN_LAZY_SSL) {
+
+        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+        fprintf(stderr, "warning: ssl not validating peer\n");
+    }
 }
 
 mfhttp         *http_create(void)
@@ -92,6 +101,28 @@ mfhttp         *http_create(void)
     conn->show_progress = false;
     return conn;
 }
+
+void    http_set_connect_flags(mfhttp * http,unsigned int flags)
+{
+    if(http == NULL) return;
+
+    http->connect_flags = flags;
+
+    return;
+}
+
+void http_set_data_handler(mfhttp * conn, DataHandler data_handler,
+                            void * cb_data)
+{
+    if(conn == NULL) return;
+
+    if(data_handler != NULL) conn->data_handler = data_handler;
+
+    if(cb_data != NULL) conn->cb_data = cb_data;
+
+    return;
+}
+
 
 json_t         *http_parse_buf_json(mfhttp * conn, size_t flags,
                                     json_error_t * error)
@@ -127,8 +158,7 @@ http_progress_cb(void *user_ptr, double dltotal, double dlnow,
 }
 
 int
-http_get_buf(mfhttp * conn, const char *url,
-             int (*data_handler) (mfhttp * conn, void *data), void *data)
+http_get_buf(mfhttp * conn, const char *url)
 {
     int             retval;
 
@@ -141,14 +171,14 @@ http_get_buf(mfhttp * conn, const char *url,
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
-    fprintf(stderr, "GET: %s\n", url);
+    // fprintf(stderr, "GET: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
         return retval;
     }
-    if (data_handler != NULL)
-        retval = data_handler(conn, data);
+    if (conn->data_handler != NULL)
+        retval = conn->data_handler(conn, conn->cb_data);
     return retval;
 }
 
@@ -184,7 +214,7 @@ http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
     data_len = size * nmemb;
 
     if (data_len > 0) {
-        fwrite(data, size, nmemb, stderr);
+        // fwrite(data, size, nmemb, stderr);
         conn->write_buf = (char *)realloc(conn->write_buf,
                                           conn->write_buf_len + data_len);
         memcpy(conn->write_buf + conn->write_buf_len, data, data_len);
@@ -195,8 +225,7 @@ http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 }
 
 int
-http_post_buf(mfhttp * conn, const char *url, const char *post_args,
-              int (*data_handler) (mfhttp * conn, void *data), void *data)
+http_post_buf(mfhttp * conn, const char *url, const char *post_args)
 {
     int             retval;
 
@@ -210,17 +239,19 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
                      http_write_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDS, post_args);
-    fprintf(stderr, "POST: %s\n", url);
+    // fprintf(stderr, "POST: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform \"%s\" \"%s\"\n\r",
                 curl_easy_strerror(retval), conn->error_buf);
         return retval;
     }
-    if (data_handler != NULL)
-        retval = data_handler(conn, data);
+    if (conn->data_handler != NULL)
+        retval = conn->data_handler(conn, conn->cb_data);
     return retval;
 }
+
+
 
 int http_get_file(mfhttp * conn, const char *url, const char *path)
 {
@@ -236,7 +267,7 @@ int http_get_file(mfhttp * conn, const char *url, const char *path)
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     // FIXME: handle fopen() return value
     conn->stream = fopen(path, "w+");
-    fprintf(stderr, "GET: %s\n", url);
+    // fprintf(stderr, "GET: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     fclose(conn->stream);
     if (retval != CURLE_OK) {
@@ -275,15 +306,14 @@ http_read_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 
     ret = fread(data, size, nmemb, conn->stream);
 
-    fprintf(stderr, "\r   %.0f / %.0f", conn->ul_now, conn->ul_len);
+    // fprintf(stderr, "\r   %.0f / %.0f", conn->ul_now, conn->ul_len);
 
     return size * ret;
 }
 
 int
 http_post_file(mfhttp * conn, const char *url, FILE * fh,
-               struct curl_slist **custom_headers, uint64_t filesize,
-               int (*data_handler) (mfhttp * conn, void *data), void *data)
+               struct curl_slist **custom_headers, uint64_t filesize)
 {
     int             retval;
     struct curl_slist *fallback_headers;
@@ -316,7 +346,7 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
     curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDSIZE, filesize);
 
     conn->stream = fh;
-    fprintf(stderr, "POST: %s\n", url);
+    // fprintf(stderr, "POST: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     curl_slist_free_all(*custom_headers);
     *custom_headers = NULL;
@@ -324,10 +354,11 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
         return retval;
     }
-    if (data_handler != NULL)
-        retval = data_handler(conn, data);
+    if (conn->data_handler != NULL)
+        retval = conn->data_handler(conn, conn->cb_data);
     return retval;
 }
+
 
 // we roll our own urlencode function because curl_easy_escape requires a curl
 // handle

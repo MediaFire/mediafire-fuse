@@ -67,7 +67,16 @@ int mfconn_api_file_get_info(mfconn * conn, mffile * file,
         }
 
         http = http_create();
-        retval = http_get_buf(http, api_call, _decode_file_get_info, file);
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
+        http_set_data_handler(http, _decode_file_get_info, file);
+
+        retval = http_get_buf(http, api_call);
+
         http_destroy(http);
         mfconn_update_secret_key(conn);
 

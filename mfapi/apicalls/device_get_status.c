@@ -47,10 +47,19 @@ int mfconn_api_device_get_status(mfconn * conn, uint64_t * revision)
         }
 
         http = http_create();
-        retval =
-            http_get_buf(http, api_call, _decode_device_get_status,
-                         (void *)revision);
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
+        http_set_data_handler(http, _decode_device_get_status,
+                                (void *)revision);
+
+        retval = http_get_buf(http, api_call);
+
         http_destroy(http);
+
         mfconn_update_secret_key(conn);
 
         free((void *)api_call);

@@ -19,6 +19,9 @@
 #ifndef _MFSHELL_OPTIONS_H_
 #define _MFSHELL_OPTIONS_H_
 
+// bit flags for controlling runtime tweaks
+#define MFOPTS_LAZY_SSL         (1U << 0)
+
 struct mfshell_user_options {
     char           *username;
     char           *password;
@@ -27,6 +30,7 @@ struct mfshell_user_options {
     char           *config;
     int             app_id;
     char           *api_key;
+    unsigned int    flags;
 };
 
 void            print_help(const char *cmd);

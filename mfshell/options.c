@@ -40,6 +40,7 @@ void print_help(const char *cmd)
     fprintf(stderr, "  -s, --server=<SERVER> Login server\n");
     fprintf(stderr, "  -i, --app-id=<id>     App ID\n");
     fprintf(stderr, "  -k, --api-key=<key>   API Key\n");
+    fprintf(stderr, "  -l, --lazy-ssl        Disables SSL peer validation\n");
     fprintf(stderr, "\n");
     fprintf(stderr,
             "Username and password are optional. If not given, they\n"
@@ -82,6 +83,7 @@ void parse_argv(int argc, char *const argv[],
         {"api-key", required_argument, 0, 'k'},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
+        {"lazy-ssl", no_argument, 0, 'l'},
         {0, 0, 0, 0}
     };
     int             c;
@@ -91,7 +93,7 @@ void parse_argv(int argc, char *const argv[],
     // configuration file
     optind = 0;
     for (;;) {
-        c = getopt_long(argc, argv, "c:u:p:s:hv", long_options, NULL);
+        c = getopt_long(argc, argv, "c:u:p:s:l:hv", long_options, NULL);
         if (c == -1)
             break;
 
@@ -111,6 +113,9 @@ void parse_argv(int argc, char *const argv[],
             case 's':
                 if (opts->server == NULL)
                     opts->server = strdup(optarg);
+                break;
+            case 'l':
+                opts->flags |= MFOPTS_LAZY_SSL;
                 break;
             case 'f':
                 if (opts->config == NULL)

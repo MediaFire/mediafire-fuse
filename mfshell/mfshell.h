@@ -41,6 +41,7 @@ struct mfshell {
     int             app_id;
     char           *app_key;
     char           *server;
+    unsigned int    flags;
 
     /* REST API tracking */
     mffolder       *folder_curr;
@@ -54,7 +55,8 @@ struct mfshell {
     mfconn         *conn;
 };
 
-mfshell        *mfshell_create(int app_id, char *app_key, char *server);
+mfshell        *mfshell_create(int app_id, char *app_key, char *server,
+                                unsigned int flags);
 
 int             mfshell_authenticate_user(mfshell * mfshell);
 

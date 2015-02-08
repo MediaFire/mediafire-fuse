@@ -96,9 +96,18 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
         }
 
         http = http_create();
-        retval =
-            http_get_buf(http, api_call, mfapi_decode_common, "file/update");
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
+        http_set_data_handler(http, mfapi_decode_common, "file/update");
+
+        retval = http_get_buf(http, api_call);
+
         http_destroy(http);
+
         mfconn_update_secret_key(conn);
 
         free((void *)api_call);

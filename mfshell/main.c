@@ -27,6 +27,7 @@
 #include <stdio.h>
 
 #include "../utils/strings.h"
+#include "../utils/http.h"
 #include "mfshell.h"
 #include "config.h"
 #include "options.h"
@@ -35,6 +36,7 @@ int main(int argc, char *const argv[])
 {
     mfshell        *shell;
     char           *auth_cmd;
+    unsigned int    flags = 0;
 
     struct mfshell_user_options opts = {
         .username = NULL,
@@ -44,6 +46,7 @@ int main(int argc, char *const argv[])
         .config = NULL,
         .app_id = -1,
         .api_key = NULL,
+        .flags = 0,
     };
 
     SSL_library_init();
@@ -62,7 +65,12 @@ int main(int argc, char *const argv[])
     if (opts.app_id == -1)
         opts.app_id = 42709;
 
-    shell = mfshell_create(opts.app_id, opts.api_key, opts.server);
+    if(opts.flags & MFOPTS_LAZY_SSL) {
+
+        flags |= HTTP_CONN_LAZY_SSL;
+    }
+
+    shell = mfshell_create(opts.app_id, opts.api_key, opts.server, flags);
     if (shell == NULL) {
         fprintf(stderr, "cannot create shell\n");
         exit(1);
@@ -101,6 +109,8 @@ int main(int argc, char *const argv[])
         free(opts.config);
     if (opts.api_key != NULL)
         free(opts.api_key);
+
+    fclose(stderr);
 
     return 0;
 }

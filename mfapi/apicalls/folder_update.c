@@ -95,9 +95,18 @@ int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
         }
 
         http = http_create();
-        retval =
-            http_get_buf(http, api_call, mfapi_decode_common, "folder/update");
+
+        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+
+            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        }
+
+        http_set_data_handler(http, mfapi_decode_common, "folder/update");
+
+        retval = http_get_buf(http, api_call);
+
         http_destroy(http);
+
         mfconn_update_secret_key(conn);
 
         free((void *)api_call);
