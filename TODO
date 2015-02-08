@@ -52,3 +52,5 @@ bounty available for the item.
    from main.c do.
  - handle the special scenario where really old files and folder have a
    revision of zero.
+ - fix bug with 'cd ..' in mediafire-shell
+ - restore terminal size/resize detection in 'ls' output on mediafire-shell
