@@ -89,13 +89,13 @@ int mfconn_api_device_get_updates(mfconn * conn, const char *quickkey,
 
         http = http_create();
 
-        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
 
             http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
         }
 
         http_set_data_handler(http, _decode_device_get_updates,
-                                (void *)patches);
+                              (void *)patches);
 
         retval = http_get_buf(http, api_call);
 

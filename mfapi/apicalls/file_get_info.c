@@ -68,7 +68,7 @@ int mfconn_api_file_get_info(mfconn * conn, mffile * file,
 
         http = http_create();
 
-        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
 
             http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
         }

@@ -65,7 +65,7 @@ int main(int argc, char *const argv[])
     if (opts.app_id == -1)
         opts.app_id = 42709;
 
-    if(opts.flags & MFOPTS_LAZY_SSL) {
+    if (opts.flags & MFOPTS_LAZY_SSL) {
 
         flags |= HTTP_CONN_LAZY_SSL;
     }

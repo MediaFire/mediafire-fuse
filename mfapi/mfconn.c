@@ -121,14 +121,16 @@ int mfconn_refresh_token(mfconn * conn)
 
 void mfconn_set_flags(mfconn * conn, unsigned int flags)
 {
-    if(conn == NULL) return;
+    if (conn == NULL)
+        return;
 
     conn->flags = flags;
 }
 
 unsigned int mfconn_get_flags(mfconn * conn)
 {
-    if(conn == NULL) return 0;
+    if (conn == NULL)
+        return 0;
 
     return conn->flags;
 }
@@ -456,4 +458,3 @@ int mfconn_upload_poll_for_completion(mfconn * conn, const char *upload_key)
     }
     return 0;
 }
-

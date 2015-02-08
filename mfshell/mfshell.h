@@ -56,7 +56,7 @@ struct mfshell {
 };
 
 mfshell        *mfshell_create(int app_id, char *app_key, char *server,
-                                unsigned int flags);
+                               unsigned int flags);
 
 int             mfshell_authenticate_user(mfshell * mfshell);
 

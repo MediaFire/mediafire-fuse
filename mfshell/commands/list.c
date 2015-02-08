@@ -66,7 +66,7 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
 
     for (i = 0; folder_result[i] != NULL; i++) {
         printf("%-15s %s\n", folder_get_key(folder_result[i]),
-        folder_get_name(folder_result[i]));
+               folder_get_name(folder_result[i]));
     }
 
     for (i = 0; folder_result[i] != NULL; i++) {
@@ -89,7 +89,7 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
 
     for (i = 0; file_result[i] != NULL; i++) {
         printf("%-15s %s\n", file_get_key(file_result[i]),
-        file_get_name(file_result[i]));
+               file_get_name(file_result[i]));
     }
 
     for (i = 0; file_result[i] != NULL; i++) {

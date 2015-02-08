@@ -64,19 +64,17 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
         // it's pretty sure that we're not at the root
         folderkey = folder_parent;
     }
-
     // handle return to root
     if (strcmp(folderkey, "/") == 0) {
 
         folderkey = NULL;
     }
-
     // check the length of the key
     if (folderkey != NULL) {
 
-        if(strlen(folderkey) != 13) return -1;
+        if (strlen(folderkey) != 13)
+            return -1;
     }
-
     // create a new folder object to store the results
     folder_new = folder_alloc();
 

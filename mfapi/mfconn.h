@@ -19,7 +19,6 @@
 #ifndef __MFAPI_MFCONN_H__
 #define __MFAPI_MFCONN_H__
 
-
 #include <stdint.h>
 #include <sys/types.h>
 

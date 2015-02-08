@@ -80,12 +80,12 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename,
 
         http = http_create();
 
-        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
 
             http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
         }
 
-        http_set_data_handler(http, _decode_upload_check,(void *)result);
+        http_set_data_handler(http, _decode_upload_check, (void *)result);
 
         retval = http_get_buf(http, api_call);
 

@@ -27,20 +27,18 @@
 
 #define HTTP_CONN_LAZY_SSL  (1U << 0)
 
-typedef struct mfhttp       mfhttp;
+typedef struct mfhttp mfhttp;
 
-typedef int (*DataHandler)  (mfhttp * conn,void * data);
-
+typedef int     (*DataHandler) (mfhttp * conn, void *data);
 
 mfhttp         *http_create(void);
 
 void            http_destroy(mfhttp * conn);
 
-void            http_set_connect_flags(mfhttp * conn,unsigned int flags);
+void            http_set_connect_flags(mfhttp * conn, unsigned int flags);
 
 void            http_set_data_handler(mfhttp * conn,
-                                        DataHandler data_handler,
-                                        void * cb_data);
+                                      DataHandler data_handler, void *cb_data);
 
 int             http_get_buf(mfhttp * conn, const char *url);
 

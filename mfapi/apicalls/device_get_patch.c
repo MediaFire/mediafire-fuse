@@ -68,7 +68,7 @@ int mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
 
         http = http_create();
 
-        if(mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
 
             http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
         }

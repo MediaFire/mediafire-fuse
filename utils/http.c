@@ -79,7 +79,7 @@ static void http_curl_reset(mfhttp * conn)
     // it should never take 5 seconds to establish a connection to the server
     curl_easy_setopt(conn->curl_handle, CURLOPT_CONNECTTIMEOUT, 5);
 
-    if(conn->connect_flags & HTTP_CONN_LAZY_SSL) {
+    if (conn->connect_flags & HTTP_CONN_LAZY_SSL) {
 
         curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
         fprintf(stderr, "warning: ssl not validating peer\n");
@@ -102,9 +102,10 @@ mfhttp         *http_create(void)
     return conn;
 }
 
-void    http_set_connect_flags(mfhttp * http,unsigned int flags)
+void http_set_connect_flags(mfhttp * http, unsigned int flags)
 {
-    if(http == NULL) return;
+    if (http == NULL)
+        return;
 
     http->connect_flags = flags;
 
@@ -112,17 +113,19 @@ void    http_set_connect_flags(mfhttp * http,unsigned int flags)
 }
 
 void http_set_data_handler(mfhttp * conn, DataHandler data_handler,
-                            void * cb_data)
+                           void *cb_data)
 {
-    if(conn == NULL) return;
+    if (conn == NULL)
+        return;
 
-    if(data_handler != NULL) conn->data_handler = data_handler;
+    if (data_handler != NULL)
+        conn->data_handler = data_handler;
 
-    if(cb_data != NULL) conn->cb_data = cb_data;
+    if (cb_data != NULL)
+        conn->cb_data = cb_data;
 
     return;
 }
-
 
 json_t         *http_parse_buf_json(mfhttp * conn, size_t flags,
                                     json_error_t * error)
@@ -157,8 +160,7 @@ http_progress_cb(void *user_ptr, double dltotal, double dlnow,
     return 0;
 }
 
-int
-http_get_buf(mfhttp * conn, const char *url)
+int http_get_buf(mfhttp * conn, const char *url)
 {
     int             retval;
 
@@ -224,8 +226,7 @@ http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
     return data_len;
 }
 
-int
-http_post_buf(mfhttp * conn, const char *url, const char *post_args)
+int http_post_buf(mfhttp * conn, const char *url, const char *post_args)
 {
     int             retval;
 
@@ -250,8 +251,6 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args)
         retval = conn->data_handler(conn, conn->cb_data);
     return retval;
 }
-
-
 
 int http_get_file(mfhttp * conn, const char *url, const char *path)
 {
@@ -358,7 +357,6 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
         retval = conn->data_handler(conn, conn->cb_data);
     return retval;
 }
-
 
 // we roll our own urlencode function because curl_easy_escape requires a curl
 // handle
