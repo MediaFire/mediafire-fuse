@@ -81,9 +81,9 @@ void parse_argv(int argc, char *const argv[],
         {"server", required_argument, 0, 's'},
         {"app-id", required_argument, 0, 'i'},
         {"api-key", required_argument, 0, 'k'},
+        {"lazy-ssl", no_argument, 0, 'l'},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
-        {"lazy-ssl", no_argument, 0, 'l'},
         {0, 0, 0, 0}
     };
     int             c;
@@ -93,7 +93,7 @@ void parse_argv(int argc, char *const argv[],
     // configuration file
     optind = 0;
     for (;;) {
-        c = getopt_long(argc, argv, "c:u:p:s:l:hv", long_options, NULL);
+        c = getopt_long(argc, argv, "c:u:p:s:lhv", long_options, NULL);
         if (c == -1)
             break;
 
