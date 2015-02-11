@@ -82,7 +82,7 @@ static void http_curl_reset(mfhttp * conn)
     if (conn->connect_flags & HTTP_CONN_LAZY_SSL) {
 
         curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-        // fprintf(stderr, "warning: ssl not validating peer\n");
+        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
     }
 }
 
