@@ -33,6 +33,7 @@
 #include "commands.h"
 #include "mfshell.h"
 #include "../mfapi/folder.h"
+#include "../utils/http.h"
 
 struct mfcmd    commands[] = {
     {"help", "", "show this help", mfshell_cmd_help},
@@ -216,6 +217,10 @@ void mfshell_run(mfshell * shell)
     size_t          len;
     int             abort = 0;
     int             retval;
+
+    if(shell->flags & HTTP_CONN_LAZY_SSL) {
+        fprintf(stderr,"warning:  ssl peer validation disabled\n");
+    }
 
     do {
         printf("\n\rmfshell > ");
