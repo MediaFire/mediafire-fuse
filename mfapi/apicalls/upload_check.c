@@ -65,13 +65,29 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename,
             fprintf(stderr, "urlencode failed\n");
             return -1;
         }
-        api_call = mfconn_create_signed_get(conn, 0, "upload/check.php",
-                                            "?response_format=json"
-                                            "&filename=%s"
-                                            "&size=%" PRIu64
-                                            "&hash=%s"
-                                            "&folder_key=%s", filename_urlenc,
-                                            size, hash, folder_key);
+
+        if(size != 0) {
+
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "upload/check.php",
+                                                "?response_format=json"
+                                                "&filename=%s"
+                                                "&size=%" PRIu64
+                                                "&hash=%s"
+                                                "&folder_key=%s",
+                                                filename_urlenc,
+                                                size, hash, folder_key);
+        } else {
+
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "upload/check.php",
+                                                "?response_format=json"
+                                                "&filename=%s"
+                                                "&folder_key=%s",
+                                                filename_urlenc,
+                                                folder_key);
+        }
+
         free(filename_urlenc);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");

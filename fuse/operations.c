@@ -535,6 +535,9 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     ctx = fuse_get_context()->private_data;
 
+    // zero out check result to prevent spurious results later
+    memset(&check_result,0,sizeof(check_result));
+
     pthread_mutex_lock(&(ctx->mutex));
 
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
@@ -606,6 +609,10 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             free(openfile);
             free(hash);
             fprintf(stderr, "mfconn_api_upload_check failed\n");
+            fprintf(stderr, "file_name: %s\n",file_name);
+            fprintf(stderr, "hash: %s\n",hash);
+            fprintf(stderr, "size: %jd\n",size);
+            fprintf(stderr, "folder_key: %s\n",folder_key);
             pthread_mutex_unlock(&(ctx->mutex));
             return -EACCES;
         }
@@ -643,7 +650,13 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             free(hash);
 
             if (retval != 0 || upload_key == NULL) {
+
                 fprintf(stderr, "mfconn_api_upload_simple failed\n");
+                fprintf(stderr, "file_name: %s\n",file_name);
+                fprintf(stderr, "hash: %s\n",hash);
+                fprintf(stderr, "size: %jd\n",size);
+                fprintf(stderr, "folder_key: %s\n",folder_key);
+
                 pthread_mutex_unlock(&(ctx->mutex));
                 return -EACCES;
             }
