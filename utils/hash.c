@@ -16,18 +16,38 @@
  *
  */
 
+#define _XOPEN_SOURCE       // required for fileno()
+
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <openssl/sha.h>
-#include <openssl/md5.h>
 #include <stddef.h>
 #include <inttypes.h>
-#include <sys/stat.h>
 #include <string.h>
 
-#include "hash.h"
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#define bufsize 32768
+#include <openssl/sha.h>
+#include <openssl/md5.h>
+
+#include "hash.h"
+#include "fsio.h"
+
+typedef struct _hasher_s
+{
+    unsigned char   *hash;
+
+    int             state;
+
+    union
+    {
+        MD5_CTX     md5;
+        SHA256_CTX  sha256;
+    };
+}
+hasher_t;
+
 
 /*
  * we use this table to convert from a base36 char (ignoring case) to an
@@ -80,23 +100,44 @@ static char     base16_encoding_table[][2] = {
     "fc", "fd", "fe", "ff"
 };
 
+// private callback
+static int  _md5_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data);
+
+static int  _sha256_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data);
+
 int calc_md5(FILE * file, unsigned char *hash)
 {
-    int             bytesRead;
-    char           *buffer;
-    MD5_CTX         md5;
+    fsio_t          *fsio = NULL;
+    hasher_t        *hasher = NULL;
+    int             fd;
+    ssize_t         bytes = -1;     // read to end of file
+    int             retval;
 
-    MD5_Init(&md5);
-    buffer = malloc(bufsize);
-    if (buffer == NULL) {
-        return -1;
-    }
-    while ((bytesRead = fread(buffer, 1, bufsize, file))) {
-        MD5_Update(&md5, buffer, bytesRead);
-    }
-    MD5_Final(hash, &md5);
-    free(buffer);
-    return 0;
+    fd = fileno(file);
+    if(fd == -1) return -1;
+
+    // make a copy
+    fd = dup(fd);
+
+    // initalize state
+    hasher = (hasher_t*)calloc(1,sizeof(hasher_t));
+    hasher->state = 0;
+    hasher->hash = hash;
+
+    fsio = fsio_create();
+    fsio_set_source(fsio,fd);
+
+    fsio_set_hook(fsio,FSIO_EVENT_BLOCK_READ,_md5_hash_cb);
+    fsio_set_hook_data(fsio,FSIO_EVENT_BLOCK_READ,(void*)hasher);
+
+    fsio_set_hook(fsio,FSIO_EVENT_FILE_READ,_md5_hash_cb);
+    fsio_set_hook_data(fsio,FSIO_EVENT_FILE_READ,(void*)hasher);
+
+    retval = fsio_file_read(fsio,&bytes);
+
+    fsio_destroy(fsio,true);
+
+    return retval;
 }
 
 /*
@@ -105,28 +146,40 @@ int calc_md5(FILE * file, unsigned char *hash)
  */
 int calc_sha256(FILE * file, unsigned char *hash, uint64_t * size)
 {
-    int             bytesRead;
-    char           *buffer;
-    SHA256_CTX      sha256;
-    uint64_t        bytesRead_sum;
+    fsio_t          *fsio = NULL;
+    hasher_t        *hasher = NULL;
+    int             fd;
+    ssize_t         bytes = -1;     // read to end of file
+    int             retval;
 
-    SHA256_Init(&sha256);
-    buffer = malloc(bufsize);
-    if (buffer == NULL) {
-        return -1;
-    }
+    fd = fileno(file);
+    if(fd == -1) return -1;
 
-    bytesRead_sum = 0;
-    while ((bytesRead = fread(buffer, 1, bufsize, file))) {
-        SHA256_Update(&sha256, buffer, bytesRead);
-        bytesRead_sum += bytesRead;
-    }
-    SHA256_Final(hash, &sha256);
-    if (size != NULL) {
-        *size = bytesRead_sum;
-    }
-    free(buffer);
-    return 0;
+    // make a copy
+    fd = dup(fd);
+
+    // initalize state
+    hasher = (hasher_t*)calloc(1,sizeof(hasher_t));
+    hasher->state = 0;
+    hasher->hash = hash;
+
+    fsio = fsio_create();
+    fsio_set_source(fsio,fd);
+
+    fsio_set_hook(fsio,FSIO_EVENT_BLOCK_READ,_sha256_hash_cb);
+    fsio_set_hook_data(fsio,FSIO_EVENT_BLOCK_READ,(void*)hasher);
+
+    fsio_set_hook(fsio,FSIO_EVENT_FILE_READ,_sha256_hash_cb);
+    fsio_set_hook_data(fsio,FSIO_EVENT_FILE_READ,(void*)hasher);
+
+    if(size != NULL) bytes = *size;
+
+    retval = fsio_file_read(fsio,&bytes);
+
+    fsio_destroy(fsio,true);
+    if(hasher != NULL) free(hasher);
+
+    return retval;
 }
 
 /* decodes a zero terminated string containing hex characters into their
@@ -268,3 +321,80 @@ int file_check_integrity_hash(const char *path, const unsigned char *fhash)
 
     return 0;
 }
+
+// end of public funcs
+static int
+_md5_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
+{
+    hasher_t    *hasher;
+
+    if(fsio == NULL || fsio_data == NULL) return -1;
+
+    hasher = fsio_data->anything;
+
+    if(event == FSIO_EVENT_BLOCK_READ)
+    {
+        if(hasher->state == 0)
+        {
+            MD5_Init(&hasher->md5);
+            hasher->state = 1;
+        }
+
+        if(hasher->state == 1)
+        {
+            if(fsio_data->data_sz > 0)
+            {
+                MD5_Update(&hasher->md5,fsio_data->data,fsio_data->data_sz);
+            }
+        }
+
+        return 0;
+    }
+
+    if(event == FSIO_EVENT_FILE_READ)
+    {
+        MD5_Final(hasher->hash,&hasher->md5);
+    }
+
+    return 0;
+}
+
+
+static int
+_sha256_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
+{
+    hasher_t    *hasher = NULL;
+
+    if(fsio == NULL || fsio_data == NULL) return -1;
+
+    hasher = (hasher_t*)fsio_data->anything;
+
+    if(event == FSIO_EVENT_BLOCK_READ)
+    {
+        if(hasher->state == 0)
+        {
+            fprintf(stderr,"state 0\n");
+            SHA256_Init(&hasher->sha256);
+            hasher->state = 1;
+        }
+
+        if(hasher->state == 1)
+        {
+            if(fsio_data->data_sz > 0)
+            {
+                SHA256_Update(&hasher->sha256,fsio_data->data,
+                                fsio_data->data_sz);
+            }
+        }
+
+        return 0;
+    }
+
+    if(event == FSIO_EVENT_FILE_READ)
+    {
+        SHA256_Final(hasher->hash,&hasher->sha256);
+    }
+
+    return 0;
+}
+

@@ -35,6 +35,11 @@
 #include "../mfapi/mfconn.h"
 #include "../utils/http.h"
 #include "../utils/strings.h"
+#include "../utils/fsio.h"
+
+#ifndef TRUE
+#define TRUE true
+#endif
 
 static int      filecache_update_file(const char *filecache_path,
                                       mfconn * conn, const char *quickkey,
@@ -170,11 +175,10 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
     char           *newfile;
     int             fd;
     int             retval;
-    const int       BUFSIZE = 4096;
-    char            buf[BUFSIZE];
-    size_t          size;
     int             source;
     int             dest;
+    fsio_t          *fsio = NULL;
+    off_t           bytes_to_copy = -1;     // -1 indicates entire file
 
     if (update) {
         cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
@@ -203,7 +207,9 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
             newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
                                     local_revision);
         }
+
         fd = open(newfile, mode);
+
         if (fd > 0) {
             /* file existed - return handle */
             free(newfile);
@@ -214,17 +220,32 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
         // original
         source = open(cachefile, O_RDONLY);
         free(cachefile);
-        if (fd > 0) {
-            dest = open(newfile, O_WRONLY | O_CREAT, 0644);
-            while ((size = read(source, buf, BUFSIZE)) > 0) {
-                write(dest, buf, size);
-            }
-            close(source);
-            close(dest);
+
+        fsio = fsio_create();
+
+        if(source > 0)
+            fsio_set_source(fsio,source);
+
+        dest = open(newfile, O_WRONLY | O_CREAT, 0644);
+
+        if(dest > 0)
+            fsio_set_target(fsio,dest);
+
+        if (source > 0 && dest > 0) {
+
+            fsio_file_copy(fsio,&bytes_to_copy);
+
+            // fsio_destroy() will close 'source' and 'dest' descriptors when
+            // TRUE is passed
+            if(fsio != NULL) fsio_destroy(fsio,TRUE);
+
             fd = open(newfile, mode);
             free(newfile);
             return fd;
         }
+
+        if(fsio != NULL) fsio_destroy(fsio,TRUE);
+
         free(newfile);
         // if the source file cannot be opened for copying, then it has to be
         // retrieved
@@ -288,9 +309,22 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
                                 remote_revision);
         source = open(cachefile, O_RDONLY);
         dest = open(newfile, O_WRONLY | O_CREAT, 0644);
-        while ((size = read(source, buf, BUFSIZE)) > 0) {
-            write(dest, buf, size);
+
+        fsio = fsio_create();
+
+        if(source > 0)
+            fsio_set_source(fsio,source);
+
+        if(dest > 0)
+            fsio_set_target(fsio,dest);
+
+        if (source > 0 && dest > 0) {
+
+            fsio_file_copy(fsio,&bytes_to_copy);
+
+            if(fsio != NULL) fsio_destroy(fsio,TRUE);
         }
+
         close(source);
         close(dest);
         fd = open(newfile, mode);
