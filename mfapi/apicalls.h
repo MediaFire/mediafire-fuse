@@ -56,6 +56,10 @@ enum mfconn_file_link_type {
     MFCONN_FILE_LINK_TYPE_ONE_TIME_DOWNLOAD
 };
 
+// bit flags for controlling runtime tweaks
+//#define MFOPTS_LAZY_SSL         (1U << 0)
+
+
 extern const char *mfconn_file_link_types[];    // declared in apicalls.c
 
 struct mfconn_device_change {

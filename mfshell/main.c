@@ -43,7 +43,6 @@ int main(int argc, char *const argv[])
 {
     mfshell        *shell;
     char           *auth_cmd;
-    unsigned int    flags = 0;
 
     struct mfshell_user_options opts = {
         .username = NULL,
@@ -53,7 +52,7 @@ int main(int argc, char *const argv[])
         .config = NULL,
         .app_id = -1,
         .api_key = NULL,
-        .flags = 0,
+        .http_flags = 0,
     };
 
     SSL_library_init();
@@ -72,12 +71,13 @@ int main(int argc, char *const argv[])
     if (opts.app_id == -1)
         opts.app_id = 42709;
 
-    if (opts.flags & MFOPTS_LAZY_SSL) {
+    //if (opts.flags & MFOPTS_LAZY_SSL) {
 
-        flags |= HTTP_CONN_LAZY_SSL;
-    }
+    //    flags |= HTTP_CONN_LAZY_SSL;
+    //}
 
-    shell = mfshell_create(opts.app_id, opts.api_key, opts.server, flags);
+    shell = mfshell_create(opts.app_id, opts.api_key, opts.server, 
+                            opts.http_flags);
     if (shell == NULL) {
         fprintf(stderr, "cannot create shell\n");
         exit(1);

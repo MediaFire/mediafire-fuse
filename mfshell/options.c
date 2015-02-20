@@ -26,6 +26,8 @@
 
 #include "options.h"
 
+#include "../utils/http.h"
+
 void print_help(const char *cmd)
 {
     fprintf(stderr, "A shell to access a MediaFire account.\n");
@@ -115,7 +117,7 @@ void parse_argv(int argc, char *const argv[],
                     opts->server = strdup(optarg);
                 break;
             case 'l':
-                opts->flags |= MFOPTS_LAZY_SSL;
+                opts->http_flags |= HTTP_FLAG_LAZY_SSL;
                 break;
             case 'f':
                 if (opts->config == NULL)

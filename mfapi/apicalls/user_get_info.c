@@ -48,9 +48,9 @@ int mfconn_api_user_get_info(mfconn * conn, mfuser_t * user)
 
     http = http_create();
 
-    if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+    if (mfconn_get_http_flags(conn) & HTTP_FLAG_LAZY_SSL) {
 
-        http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+        http_set_connect_flags(http, HTTP_FLAG_LAZY_SSL);
     }
 
     http_set_data_handler(http, _decode_user_get_info, (void *)user);

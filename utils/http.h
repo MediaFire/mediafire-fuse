@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 
-#define HTTP_CONN_LAZY_SSL  (1U << 0)
+#define HTTP_FLAG_LAZY_SSL          (1U << 0)
 
 typedef struct mfhttp mfhttp;
 

@@ -43,13 +43,13 @@ struct mfconn {
     int             app_id;
     char           *app_key;
     int             max_num_retries;
-    unsigned int    flags;
+    unsigned int    http_flags;
 };
 
 mfconn         *mfconn_create(const char *server, const char *username,
                               const char *password, int app_id,
                               const char *app_key, int max_num_retries,
-                              unsigned int flags)
+                              unsigned int http_flags)
 {
     mfconn         *conn;
     int             retval;
@@ -80,7 +80,7 @@ mfconn         *mfconn_create(const char *server, const char *username,
     conn->secret_time = NULL;
     conn->session_token = NULL;
     conn->ekey = NULL;
-    conn->flags = flags;
+    conn->http_flags = http_flags;
     retval = mfconn_api_user_get_session_token(conn, conn->server,
                                                conn->username, conn->password,
                                                conn->app_id, conn->app_key,
@@ -121,20 +121,20 @@ int mfconn_refresh_token(mfconn * conn)
     return 0;
 }
 
-void mfconn_set_flags(mfconn * conn, unsigned int flags)
+void mfconn_set_http_flags(mfconn * conn, unsigned int http_flags)
 {
     if (conn == NULL)
         return;
 
-    conn->flags = flags;
+    conn->http_flags = http_flags;
 }
 
-unsigned int mfconn_get_flags(mfconn * conn)
+unsigned int mfconn_get_http_flags(mfconn * conn)
 {
     if (conn == NULL)
         return 0;
 
-    return conn->flags;
+    return conn->http_flags;
 }
 
 void mfconn_destroy(mfconn * conn)

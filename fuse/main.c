@@ -42,19 +42,24 @@
 #include "operations.h"
 #include "../utils/strings.h"
 #include "../utils/stringv.h"
+#include "../utils/http.h"
 
 enum {
     KEY_HELP,
     KEY_VERSION,
+    KEY_LAZY_SSL,
 };
 
-struct mediafirefs_user_options {
-    char           *username;
-    char           *password;
-    char           *configfile;
-    char           *server;
-    int             app_id;
-    char           *api_key;
+struct mediafirefs_user_options
+{
+    char                *username;
+    char                *password;
+    char                *configfile;
+    char                *server;
+    int                 app_id;
+    char                *api_key;
+
+    unsigned int        http_flags;
 };
 
 static struct fuse_operations mediafirefs_oper = {
@@ -108,13 +113,16 @@ static void usage(const char *progname)
             "    --server domain        server domain\n"
             "    -i, --app-id id        App ID\n"
             "    -k, --api-key key      API Key\n"
+            "    -l, --lazy-ssl         Disables SSL peer validation\n"
             "\n"
             "Notice that long options are separated from their arguments by\n"
             "a space and not an equal sign.\n" "\n", progname);
 }
 
+// this handler is for just for HELP and VERSION
+
 static int
-mediafirefs_opt_proc(void *data, const char *arg, int key,
+mediafirefs_opt_pre(void *data, const char *arg, int key,
                      struct fuse_args *outargs)
 {
     (void)data;                 // unused
@@ -135,6 +143,30 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
 
     return 1;
 }
+
+// this handler is for the all other keys that we will not abort on
+
+static int
+mediafirefs_opt_post(void *data, const char *arg, int key,
+                     struct fuse_args *outargs)
+{
+    struct mediafirefs_user_options     *options = NULL;
+
+    (void)arg;                  // unused
+    (void)outargs;              // unused
+
+    options = (struct mediafirefs_user_options*)data;
+
+    if (key == KEY_LAZY_SSL) {
+
+        options->http_flags |= HTTP_FLAG_LAZY_SSL;
+
+        return 0;
+    }
+
+    return 1;
+}
+
 
 static void parse_config_file(int *argc, char ***argv, char *configfile)
 {
@@ -229,7 +261,7 @@ static void parse_arguments(int *argc, char ***argv,
 
     if (fuse_opt_parse
         (&args_fst, options, mediafirefs_opts_fst,
-         mediafirefs_opt_proc) == -1) {
+         mediafirefs_opt_pre) == -1) {
         exit(1);
     }
 
@@ -258,13 +290,19 @@ static void parse_arguments(int *argc, char ***argv,
         {"-k %s", offsetof(struct mediafirefs_user_options, api_key), 0},
         {"--api-key %s", offsetof(struct mediafirefs_user_options, api_key),
          0},
+        // {"-l", offsetof(struct mediafirefs_user_options,
+        // http_flags), 0},
+        //{"--lazy-ssl", offsetof(struct mediafirefs_user_options,
+        // http_flags), 0},
+        FUSE_OPT_KEY("-l", KEY_LAZY_SSL),
+        FUSE_OPT_KEY("--lazy-ssl", KEY_LAZY_SSL),
         FUSE_OPT_END
     };
 
     struct fuse_args args_snd = FUSE_ARGS_INIT(*argc, *argv);
 
-    if (fuse_opt_parse(&args_snd, options, mediafirefs_opts_snd, NULL)
-        == -1) {
+    if (fuse_opt_parse(&args_snd, options, mediafirefs_opts_snd,
+        mediafirefs_opt_post) == -1) {
         exit(1);
     }
 
@@ -291,8 +329,8 @@ static void connect_mf(struct mediafirefs_user_options *options,
     }
 
     *conn = mfconn_create(options->server, options->username,
-                          options->password, options->app_id,
-                          options->api_key, 3, 0);
+                            options->password, options->app_id,
+                            options->api_key, 3, options->http_flags);
 
     if (*conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
@@ -457,8 +495,8 @@ int main(int argc, char *argv[])
                     i;
     struct mediafirefs_context_private      *ctx;
 
-    struct mediafirefs_user_options         options = {
-        NULL, NULL, NULL, NULL, -1, NULL
+    struct mediafirefs_user_options options = {
+        NULL, NULL, NULL, NULL, -1, NULL, 0,
     };
 
     pthread_mutexattr_t     mutex_attr;

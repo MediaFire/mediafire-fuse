@@ -49,7 +49,7 @@ struct mfshell {
     int             app_id;
     char           *app_key;
     char           *server;
-    unsigned int    flags;
+    unsigned int    http_flags;
 
     /* REST API tracking */
     mffolder       *folder_curr;

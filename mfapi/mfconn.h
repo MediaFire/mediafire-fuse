@@ -35,9 +35,9 @@ int             mfconn_refresh_token(mfconn * conn);
 
 void            mfconn_destroy(mfconn * conn);
 
-void            mfconn_set_flags(mfconn * conn, unsigned int flags);
+void            mfconn_set_http_flags(mfconn * conn, unsigned int http_flags);
 
-unsigned int    mfconn_get_flags(mfconn * conn);
+unsigned int    mfconn_get_http_flags(mfconn * conn);
 
 ssize_t         mfconn_download_direct(mffile * file, const char *local_dir);
 

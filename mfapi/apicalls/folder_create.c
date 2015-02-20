@@ -73,9 +73,9 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
 
         http = http_create();
 
-        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_http_flags(conn) & HTTP_FLAG_LAZY_SSL) {
 
-            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+            http_set_connect_flags(http, HTTP_FLAG_LAZY_SSL);
         }
 
         http_set_data_handler(http, mfapi_decode_common, "folder/create");
