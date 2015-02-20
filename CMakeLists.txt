@@ -77,6 +77,8 @@ add_executable(mediafire-shell
 	$<TARGET_OBJECTS:mfutils>
 	mfshell/main.c
 	mfshell/mfshell.c
+    mfshell/terminal.c
+    mfshell/signals.c
 	mfshell/commands/folder.c
 	mfshell/commands/auth.c
 	mfshell/commands/chdir.c

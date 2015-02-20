@@ -33,6 +33,7 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     mffolder      **folder_result;
     mffile        **file_result;
     int             i;
+    int             term_width = 80;        // use ansi tty width by default
 
     if (mfshell == NULL)
         return -1;
@@ -64,8 +65,15 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     }
 */
 
+#ifdef TIOCGWINSZ
+
+    term_width = mfshell->terminal_sz.ws_col;
+
+#endif
+
     for (i = 0; folder_result[i] != NULL; i++) {
-        printf("%-15s %s\n", folder_get_key(folder_result[i]),
+        printf("%-15s %.*s\n", folder_get_key(folder_result[i]),
+               (term_width - 18),
                folder_get_name(folder_result[i]));
     }
 
@@ -88,7 +96,8 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
 */
 
     for (i = 0; file_result[i] != NULL; i++) {
-        printf("%-15s %s\n", file_get_key(file_result[i]),
+        printf("%-15s %.*s\n", file_get_key(file_result[i]),
+               (term_width - 18),
                file_get_name(file_result[i]));
     }
 
