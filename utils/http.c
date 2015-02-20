@@ -81,8 +81,8 @@ static void http_curl_reset(mfhttp * conn)
 
     if (conn->connect_flags & HTTP_CONN_LAZY_SSL) {
 
-        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYHOST, 0);
     }
 }
 

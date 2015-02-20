@@ -28,7 +28,8 @@ typedef struct mfconn mfconn;
 
 mfconn         *mfconn_create(const char *server, const char *username,
                               const char *password, int app_id,
-                              const char *app_key, int max_num_retries);
+                              const char *app_key, int max_num_retries,
+                              unsigned int flags);
 
 int             mfconn_refresh_token(mfconn * conn);
 
