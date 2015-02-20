@@ -65,11 +65,11 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     }
 */
 
-#ifdef TIOCGWINSZ
+//#ifdef TIOCGWINSZ
 
     term_width = mfshell->terminal_sz.ws_col;
 
-#endif
+//#endif
 
     for (i = 0; folder_result[i] != NULL; i++) {
         printf("%-15s %.*s\n", folder_get_key(folder_result[i]),

@@ -17,8 +17,9 @@
  *
  */
 
-#define _POSIX_C_SOURCE 200809L // for strdup
-#define _GNU_SOURCE             // for strdup on old systems
+#define _POSIX_C_SOURCE 200809L     // for strdup
+#define _GNU_SOURCE                 // for strdup on old systems
+#define __BSD_VISIBLE   200809L     // required for SIGWINCH on BSD
 
 #include <openssl/ssl.h>
 #include <stddef.h>
@@ -27,9 +28,9 @@
 #include <stdio.h>
 #include <signal.h>
 
-#ifdef __linux__
+//#ifdef __linux__
 #include <sys/ioctl.h>
-#endif
+//#endif
 
 #include "../utils/strings.h"
 #include "../utils/http.h"

@@ -19,9 +19,9 @@
 #include <unistd.h>
 #include <signal.h>
 
-#ifdef __linux__
+//#ifdef __linux__
 #include <sys/ioctl.h>
-#endif
+//#endif
 
 #include "mfshell.h"
 
@@ -31,7 +31,7 @@ void terminal_rectify(mfshell * shell)
 {
     extern sig_atomic_t     dirty_term_flag;
 
-#ifdef TIOCGWINSZ
+//#ifdef TIOCGWINSZ
 
     if(dirty_term_flag == 1) {
 
@@ -41,11 +41,11 @@ void terminal_rectify(mfshell * shell)
         dirty_term_flag = 0;
     }
 
-#else
+//#else
 
     (void)shell;
 
-#endif
+//#endif
 
     return;
 }

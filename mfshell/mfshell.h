@@ -20,8 +20,12 @@
 #ifndef _MFSHELL_H_
 #define _MFSHELL_H_
 
-#ifdef __linux__
 #include <sys/ioctl.h>
+
+// this works on PC-BSD and should work on all BSD variants
+// http://sourceforge.net/p/predef/wiki/OperatingSystems/
+#ifdef __bsdi__
+#include <sys/ttycom.h>
 #endif
 
 #include "../mfapi/folder.h"
@@ -58,9 +62,9 @@ struct mfshell {
 
     mfconn         *conn;
 
-#ifdef TIOCGWINSZ
+//#ifdef TIOCGWINSZ
     struct winsize  terminal_sz;
-#endif
+//#endif
 };
 
 mfshell        *mfshell_create(int app_id, char *app_key, char *server,
