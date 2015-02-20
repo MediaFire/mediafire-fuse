@@ -41,6 +41,10 @@ void terminal_rectify(mfshell * shell)
         dirty_term_flag = 0;
     }
 
+#else
+
+    (void)shell;
+
 #endif
 
     return;
