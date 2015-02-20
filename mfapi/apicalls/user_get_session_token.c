@@ -107,9 +107,9 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
 
         http = http_create();
 
-        if (mfconn_get_flags(conn) & HTTP_CONN_LAZY_SSL) {
+        if (mfconn_get_http_flags(conn) & HTTP_FLAG_LAZY_SSL) {
 
-            http_set_connect_flags(http, HTTP_CONN_LAZY_SSL);
+            http_set_connect_flags(http, HTTP_FLAG_LAZY_SSL);
         }
 
         http_set_data_handler(http, _decode_get_session_token,

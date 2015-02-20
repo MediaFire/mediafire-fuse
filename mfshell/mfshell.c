@@ -72,7 +72,7 @@ struct mfcmd    commands[] = {
 };
 
 mfshell        *mfshell_create(int app_id, char *app_key, char *server,
-                               unsigned int flags)
+                               unsigned int http_flags)
 {
     mfshell        *shell;
 
@@ -108,7 +108,7 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server,
     shell->commands = commands;
 
     // set flags bit mask
-    shell->flags = flags;
+    shell->http_flags = http_flags;
 
     return shell;
 }
@@ -226,7 +226,7 @@ void mfshell_run(mfshell * shell)
     dirty_term_flag = 1;
     terminal_rectify(shell);
 
-    if(shell->flags & HTTP_CONN_LAZY_SSL) {
+    if(shell->http_flags & HTTP_FLAG_LAZY_SSL) {
         fprintf(stderr,"warning:  ssl peer validation disabled\n");
     }
 

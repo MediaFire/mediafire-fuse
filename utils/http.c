@@ -79,7 +79,7 @@ static void http_curl_reset(mfhttp * conn)
     // it should never take 5 seconds to establish a connection to the server
     curl_easy_setopt(conn->curl_handle, CURLOPT_CONNECTTIMEOUT, 5);
 
-    if (conn->connect_flags & HTTP_CONN_LAZY_SSL) {
+    if (conn->connect_flags & HTTP_FLAG_LAZY_SSL) {
 
         curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYHOST, 0);
