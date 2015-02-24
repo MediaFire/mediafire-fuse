@@ -17,20 +17,27 @@
  *
  */
 
-#define _POSIX_C_SOURCE 200809L // for strdup
-#define _GNU_SOURCE             // for strdup on old systems
+#define _POSIX_C_SOURCE 200809L     // for strdup
+#define _GNU_SOURCE                 // for strdup on old systems
+#define __BSD_VISIBLE   200809L     // required for SIGWINCH on BSD
 
 #include <openssl/ssl.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
+
+//#ifdef __linux__
+#include <sys/ioctl.h>
+//#endif
 
 #include "../utils/strings.h"
 #include "../utils/http.h"
 #include "mfshell.h"
 #include "config.h"
 #include "options.h"
+#include "signals.h"
 
 int main(int argc, char *const argv[])
 {
@@ -88,7 +95,12 @@ int main(int argc, char *const argv[])
     }
 
     if (opts.command == NULL) {
+
         // begin shell mode
+#ifdef TIOCGWINSZ
+        signal(SIGWINCH, signal_sigwinch);
+#endif
+
         mfshell_run(shell);
     } else {
         // interpret command

@@ -48,7 +48,8 @@ struct mfconn {
 
 mfconn         *mfconn_create(const char *server, const char *username,
                               const char *password, int app_id,
-                              const char *app_key, int max_num_retries)
+                              const char *app_key, int max_num_retries,
+                              unsigned int flags)
 {
     mfconn         *conn;
     int             retval;
@@ -79,6 +80,7 @@ mfconn         *mfconn_create(const char *server, const char *username,
     conn->secret_time = NULL;
     conn->session_token = NULL;
     conn->ekey = NULL;
+    conn->flags = flags;
     retval = mfconn_api_user_get_session_token(conn, conn->server,
                                                conn->username, conn->password,
                                                conn->app_id, conn->app_key,

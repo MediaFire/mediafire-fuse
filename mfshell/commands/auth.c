@@ -72,9 +72,9 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
     // create an auth configuration with a resilience of 3 retries
     // per API call
     mfshell->conn = mfconn_create(mfshell->server, username, password,
-                                  mfshell->app_id, mfshell->app_key, 3);
+                                  mfshell->app_id, mfshell->app_key, 3,flags);
 
-    mfconn_set_flags(mfshell->conn, flags);
+    //mfconn_set_flags(mfshell->conn, flags);
 
     if (mfshell->conn != NULL)
         printf("\n\rAuthentication SUCCESS\n\r");

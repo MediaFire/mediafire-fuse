@@ -21,6 +21,8 @@ add_definitions("-D_FILE_OFFSET_BITS=64")
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+find_package(Threads REQUIRED)
+
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
@@ -78,6 +80,8 @@ add_executable(mediafire-shell
 	$<TARGET_OBJECTS:mfutils>
 	mfshell/main.c
 	mfshell/mfshell.c
+    mfshell/terminal.c
+    mfshell/signals.c
 	mfshell/commands/folder.c
 	mfshell/commands/auth.c
 	mfshell/commands/chdir.c
@@ -112,7 +116,7 @@ add_executable(mediafire-fuse
 	fuse/hashtbl.c
 	fuse/filecache.c
 	fuse/operations.c)
-target_link_libraries(mediafire-fuse ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES})
+target_link_libraries(mediafire-fuse ${CMAKE_THREAD_LIBS_INIT} ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES})
 
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
 add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})

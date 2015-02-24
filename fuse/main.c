@@ -292,7 +292,7 @@ static void connect_mf(struct mediafirefs_user_options *options,
 
     *conn = mfconn_create(options->server, options->username,
                           options->password, options->app_id,
-                          options->api_key, 3);
+                          options->api_key, 3, 0);
 
     if (*conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
@@ -455,11 +455,13 @@ int main(int argc, char *argv[])
 {
     int             ret,
                     i;
-    struct mediafirefs_context_private *ctx;
+    struct mediafirefs_context_private      *ctx;
 
-    struct mediafirefs_user_options options = {
+    struct mediafirefs_user_options         options = {
         NULL, NULL, NULL, NULL, -1, NULL
     };
+
+    pthread_mutexattr_t     mutex_attr;
 
     ctx = calloc(1, sizeof(struct mediafirefs_context_private));
 
@@ -488,7 +490,11 @@ int main(int argc, char *argv[])
     ctx->last_status_check = 0;
     ctx->interval_status_check = 60;    // TODO: make this configurable
 
-    pthread_mutex_init(&(ctx->mutex), NULL);
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_settype(&mutex_attr,PTHREAD_MUTEX_RECURSIVE_NP);
+
+    pthread_mutex_init(&(ctx->mutex),
+        (const pthread_mutexattr_t*)&mutex_attr);
 
     ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 
@@ -503,6 +509,7 @@ int main(int argc, char *argv[])
     stringv_free(ctx->sv_writefiles);
     stringv_free(ctx->sv_readonlyfiles);
     pthread_mutex_destroy(&(ctx->mutex));
+    pthread_mutexattr_destroy(&mutex_attr);
     free(ctx);
 
     return ret;

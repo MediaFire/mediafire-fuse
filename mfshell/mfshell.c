@@ -29,9 +29,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wordexp.h>
+#include <signal.h>
 
 #include "commands.h"
 #include "mfshell.h"
+#include "terminal.h"
 #include "../mfapi/folder.h"
 #include "../utils/http.h"
 
@@ -213,10 +215,16 @@ void mfshell_parse_commands(mfshell * shell, char *command)
 
 void mfshell_run(mfshell * shell)
 {
-    char           *cmd = NULL;
-    size_t          len;
-    int             abort = 0;
-    int             retval;
+    char                   *cmd = NULL;
+    size_t                  len;
+    int                     abort = 0;
+    int                     retval;
+    extern sig_atomic_t     dirty_term_flag;
+
+    // force the terminal size to be read at startup so we can get the
+    // dimensions.
+    dirty_term_flag = 1;
+    terminal_rectify(shell);
 
     if(shell->flags & HTTP_CONN_LAZY_SSL) {
         fprintf(stderr,"warning:  ssl peer validation disabled\n");
@@ -244,6 +252,9 @@ void mfshell_run(mfshell * shell)
             abort = 1;
             continue;
         }
+
+        // check if the terminal has changed since last command
+        terminal_rectify(shell);
 
         retval = mfshell_exec_shell_command(shell, cmd);
         free(cmd);
