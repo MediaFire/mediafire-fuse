@@ -72,6 +72,7 @@ add_library(mfutils OBJECT
 	utils/strings.c
 	utils/stringv.c
 	utils/xdelta3.c
+    utils/fsio.c
 	utils/hash.c)
 
 add_executable(mediafire-shell
