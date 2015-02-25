@@ -529,7 +529,7 @@ int main(int argc, char *argv[])
     ctx->interval_status_check = 60;    // TODO: make this configurable
 
     pthread_mutexattr_init(&mutex_attr);
-    pthread_mutexattr_settype(&mutex_attr,PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutexattr_settype(&mutex_attr,PTHREAD_MUTEX_RECURSIVE);
 
     pthread_mutex_init(&(ctx->mutex),
         (const pthread_mutexattr_t*)&mutex_attr);
