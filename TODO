@@ -3,7 +3,6 @@ have a small bounty attached to them.  Anyone wishing to work on this TODO
 list should contact bryan.christ@mediafire.com to see if there is a
 bounty available for the item.
 
- - add an --insecure option as by default, SSL should always be used
  - add debug printing using better means than stderr printfs
  - fuse can log to syslog
  - write documentation
@@ -53,4 +52,3 @@ bounty available for the item.
  - handle the special scenario where really old files and folder have a
    revision of zero.
  - fix bug with 'cd ..' in mediafire-shell
- - restore terminal size/resize detection in 'ls' output on mediafire-shell
