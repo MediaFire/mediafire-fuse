@@ -32,7 +32,8 @@
 #include "strings.h"
 #include "stringv.h"
 
-char           *strdup_printf(char *fmt, ...)
+char*
+strdup_printf(char *fmt, ...)
 {
     // Good for glibc 2.1 and above. Fedora5 is 2.4.
 
@@ -60,7 +61,8 @@ char           *strdup_printf(char *fmt, ...)
     return ret_str;
 }
 
-char           *string_line_from_stdin(bool hide)
+char*
+string_line_from_stdin(bool hide)
 {
     char           *line = NULL;
     size_t          len;
@@ -94,4 +96,26 @@ char           *string_line_from_stdin(bool hide)
         line[strlen(line) - 1] = '\0';
 
     return line;
+}
+
+
+void
+string_array_free(char **array)
+{
+    char    **rewind = NULL;
+
+    if(array == NULL) return;
+
+    rewind = array;
+
+    while(*array != NULL)
+    {
+        // fprintf(stderr,"free\n");
+        free(*array);
+        array++;
+    }
+
+    free(rewind);
+
+    return;
 }
