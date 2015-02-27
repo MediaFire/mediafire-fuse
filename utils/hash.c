@@ -44,7 +44,8 @@ typedef struct _hasher_s
     {
         MD5_CTX     md5;
         SHA256_CTX  sha256;
-    };
+    }
+    ctx;
 }
 hasher_t;
 
@@ -336,7 +337,7 @@ _md5_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
     {
         if(hasher->state == 0)
         {
-            MD5_Init(&hasher->md5);
+            MD5_Init(&hasher->ctx.md5);
             hasher->state = 1;
         }
 
@@ -344,7 +345,7 @@ _md5_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
         {
             if(fsio_data->data_sz > 0)
             {
-                MD5_Update(&hasher->md5,fsio_data->data,fsio_data->data_sz);
+                MD5_Update(&hasher->ctx.md5,fsio_data->data,fsio_data->data_sz);
             }
         }
 
@@ -353,7 +354,7 @@ _md5_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
 
     if(event == FSIO_EVENT_FILE_READ)
     {
-        MD5_Final(hasher->hash,&hasher->md5);
+        MD5_Final(hasher->hash,&hasher->ctx.md5);
     }
 
     return 0;
@@ -374,7 +375,7 @@ _sha256_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
         if(hasher->state == 0)
         {
             fprintf(stderr,"state 0\n");
-            SHA256_Init(&hasher->sha256);
+            SHA256_Init(&hasher->ctx.sha256);
             hasher->state = 1;
         }
 
@@ -382,7 +383,7 @@ _sha256_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
         {
             if(fsio_data->data_sz > 0)
             {
-                SHA256_Update(&hasher->sha256,fsio_data->data,
+                SHA256_Update(&hasher->ctx.sha256,fsio_data->data,
                                 fsio_data->data_sz);
             }
         }
@@ -392,7 +393,7 @@ _sha256_hash_cb(fsio_t *fsio,int event,fsio_data_t *fsio_data)
 
     if(event == FSIO_EVENT_FILE_READ)
     {
-        SHA256_Final(hasher->hash,&hasher->sha256);
+        SHA256_Final(hasher->hash,&hasher->ctx.sha256);
     }
 
     return 0;
