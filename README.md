@@ -4,13 +4,14 @@ About
 The mediafire-tools project offers two programs to interact with a mediafire
 account:
 
- - mediafire-shell: a simple shell for a mediafire account like ftp(1)
- - mediafire-fuse: a fuse module that is able to mount the mediafire share locally
+ - mediafire-shell: a simple shell for a mediafire account like ftp(1).
+ - mediafire-fuse:  a fuse module that is able to mount the mediafire share locally.
+ - mediafire-check: a tool that will check to see if a file is eligible for instant upload or whether or not a file is already in your account.
 
 License
 =======
 
-This software is copyright 2013-2014 Bryan Christ and Johannes Schauer and can
+This software is copyright 2013 - 2015 Bryan Christ and Johannes Schauer and can
 re redistributed and/or modified under the terms of the GNU General Public
 License version 2.
 
