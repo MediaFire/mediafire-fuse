@@ -43,6 +43,7 @@
 #include "../utils/strings.h"
 #include "../utils/stringv.h"
 #include "../utils/http.h"
+#include "../utils/config.h"
 
 enum {
     KEY_HELP,
@@ -167,73 +168,12 @@ mediafirefs_opt_post(void *data, const char *arg, int key,
     return 1;
 }
 
-
-static void parse_config_file(int *argc, char ***argv, char *configfile)
-{
-    // read the config file line by line and pass each line to wordexp to
-    // retain proper quoting
-    char           *line = NULL;
-    size_t          len = 0;
-    ssize_t         read;
-    wordexp_t       p;
-    int             ret;
-    size_t          i;
-    FILE           *fp;
-
-    if ((fp = fopen(configfile, "r")) == NULL) {
-        fprintf(stderr, "Cannot open configuration file %s\n", configfile);
-        return;
-    }
-
-    while ((read = getline(&line, &len, fp)) != -1) {
-        if (line[0] == '#')
-            continue;
-
-        // replace possible trailing newline by zero
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        ret = wordexp(line, &p, WRDE_SHOWERR | WRDE_UNDEF);
-        if (ret != 0) {
-            switch (ret) {
-                case WRDE_BADCHAR:
-                    fprintf(stderr, "wordexp: WRDE_BADCHAR\n");
-                    break;
-                case WRDE_BADVAL:
-                    fprintf(stderr, "wordexp: WRDE_BADVAL\n");
-                    break;
-                case WRDE_CMDSUB:
-                    fprintf(stderr, "wordexp: WRDE_CMDSUB\n");
-                    break;
-                case WRDE_NOSPACE:
-                    fprintf(stderr, "wordexp: WRDE_NOSPACE\n");
-                    break;
-                case WRDE_SYNTAX:
-                    fprintf(stderr, "wordexp: WRDE_SYNTAX\n");
-                    break;
-            }
-            wordfree(&p);
-            continue;
-        }
-        // now insert those arguments into argv right after the first
-        *argv = (char **)realloc(*argv, sizeof(char *) * (*argc + p.we_wordc));
-        memmove((*argv) + p.we_wordc + 1, (*argv) + 1,
-                sizeof(char *) * (*argc - 1));
-        *argc += p.we_wordc;
-        for (i = 0; i < p.we_wordc; i++) {
-            (*argv)[i + 1] = strdup(p.we_wordv[i]);
-        }
-        wordfree(&p);
-    }
-    free(line);
-
-    fclose(fp);
-}
-
 static void parse_arguments(int *argc, char ***argv,
                             struct mediafirefs_user_options *options,
                             char *configfile)
 {
-    int             i;
+    FILE    *file = NULL;
+    int     i;
 
     /* In the first pass, we only search for the help, version and config file
      * options.
@@ -269,9 +209,16 @@ static void parse_arguments(int *argc, char ***argv,
     *argv = args_fst.argv;
 
     if (options->configfile != NULL) {
-        parse_config_file(argc, argv, options->configfile);
+
+        file = fopen(options->configfile,"r");
+        config_file_read(file, argc, argv);
+        fclose(file);
+
     } else if (configfile != NULL) {
-        parse_config_file(argc, argv, configfile);
+
+        file = fopen(configfile,"r");
+        config_file_read(file, argc, argv);
+        fclose(file);
     }
 
     struct fuse_opt mediafirefs_opts_snd[] = {
@@ -378,57 +325,6 @@ static void open_hashtbl(const char *dircache, const char *filecache,
     folder_tree_debug(*tree);
 }
 
-static void setup_conf_dir(char **configfile)
-{
-    const char     *homedir;
-    const char     *configdir;
-    int             fd;
-
-    homedir = getenv("HOME");
-    if (homedir == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-
-    configdir = getenv("XDG_CONFIG_HOME");
-    if (configdir == NULL) {
-        configdir = strdup_printf("%s/.config", homedir);
-        /* EEXIST is okay, so only fail if it is something else */
-        if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
-            perror("mkdir");
-            fprintf(stderr, "cannot create %s\n", configdir);
-            exit(1);
-        }
-        free((void *)configdir);
-        configdir = strdup_printf("%s/.config/mediafire-tools", homedir);
-    } else {
-        // $XDG_CONFIG_HOME/mediafire-tools
-        if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
-            perror("mkdir");
-            fprintf(stderr, "cannot create %s\n", configdir);
-            exit(1);
-        }
-        configdir = strdup_printf("%s/mediafire-tools", configdir);
-    }
-    /* EEXIST is okay, so only fail if it is something else */
-    if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
-        perror("mkdir");
-        fprintf(stderr, "cannot create %s\n", configdir);
-        exit(1);
-    }
-
-    *configfile = strdup_printf("%s/config", configdir);
-    /* test if the configuration file can be opened */
-    fd = open(*configfile, O_RDONLY);
-    if (fd < 0) {
-        free(*configfile);
-        *configfile = NULL;
-    } else {
-        close(fd);
-    }
-
-    free((void *)configdir);
-}
-
 static void setup_cache_dir(const char *ekey, char **dircache,
                             char **filecache)
 {
@@ -503,7 +399,7 @@ int main(int argc, char *argv[])
 
     ctx = calloc(1, sizeof(struct mediafirefs_context_private));
 
-    setup_conf_dir(&(ctx->configfile));
+    config_file_init(&(ctx->configfile));
 
     parse_arguments(&argc, &argv, &options, ctx->configfile);
 

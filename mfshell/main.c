@@ -28,21 +28,23 @@
 #include <stdio.h>
 #include <signal.h>
 
-//#ifdef __linux__
 #include <sys/ioctl.h>
-//#endif
 
-#include "../utils/strings.h"
-#include "../utils/http.h"
 #include "mfshell.h"
 #include "config.h"
 #include "options.h"
 #include "signals.h"
 
+#include "../utils/strings.h"
+#include "../utils/http.h"
+#include "../utils/config.h"
+
+
 int main(int argc, char *const argv[])
 {
-    mfshell        *shell;
-    char           *auth_cmd;
+    mfshell         *shell = NULL;
+    char            *auth_cmd = NULL;
+    char            *configfile = NULL;
 
     struct mfshell_user_options opts = {
         .username = NULL,
@@ -57,9 +59,22 @@ int main(int argc, char *const argv[])
 
     SSL_library_init();
 
-    parse_argv(argc, argv, &opts);
+    // locate the default config file
+    config_file_init(&configfile);
 
-    parse_config(&opts);
+    // if we have a configuration file, parse it first
+    if(configfile != NULL)
+    {
+        fprintf(stderr,"using config file: %s\n",configfile);
+        parse_config(configfile,&opts);
+    }
+    else
+    {
+        fprintf(stderr,"no config file found\n");
+    }
+
+    // parse the command-line next so as to trump settings in the file
+    parse_argv(argc, argv, &opts);
 
     // if server was neither set on the commandline nor in the config, set it
     // to the default value
@@ -70,11 +85,6 @@ int main(int argc, char *const argv[])
     // to the default value
     if (opts.app_id == -1)
         opts.app_id = 42709;
-
-    //if (opts.flags & MFOPTS_LAZY_SSL) {
-
-    //    flags |= HTTP_CONN_LAZY_SSL;
-    //}
 
     shell = mfshell_create(opts.app_id, opts.api_key, opts.server, 
                             opts.http_flags);

@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2014 Johannes Schauer <j.schauer@email.de>
+ * Copyright (C) 2014, 2015
+ * Johannes Schauer <j.schauer@email.de>
+ * Bryan Christ <bryan.christ@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -16,13 +18,21 @@
  *
  */
 
-#ifndef _MFSHELL_CONFIG_H_
-#define _MFSHELL_CONFIG_H_
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
 
-#include <stdio.h>
+/*
+   find the mediafire-tools configuration file.  if it doesn't exist
+   create one.
+*/
+void config_file_init(char **configfile);
 
-#include "options.h"
-
-void    parse_config(char *configfile,struct mfshell_user_options *opts);
+/*
+   load settings from the specified configuration file and push the
+   arguments from the file into argc and argv for a parser.
+   the return value indicates the number of new items found.  if the value
+   is positive, then argv will have beenbe relloc'd and null terminated.
+*/
+int config_file_read(FILE *fp,int *argc, char ***argv);
 
 #endif

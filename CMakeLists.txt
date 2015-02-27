@@ -73,7 +73,8 @@ add_library(mfutils OBJECT
 	utils/stringv.c
 	utils/xdelta3.c
     utils/fsio.c
-	utils/hash.c)
+	utils/hash.c
+    utils/config.c)
 
 add_executable(mediafire-shell
 	$<TARGET_OBJECTS:mfapi>

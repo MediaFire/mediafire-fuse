@@ -22,8 +22,10 @@
 
 #include <stdbool.h>
 
-char           *strdup_printf(char *fmt, ...);
+char*   strdup_printf(char *fmt, ...);
 
-char           *string_line_from_stdin(bool hide);
+char*   string_line_from_stdin(bool hide);
+
+void    string_array_free(char **array);
 
 #endif
