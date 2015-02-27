@@ -1,0 +1,20 @@
+For a list of engineering work that still needs to be completed, see the
+TODO file.  This list serves to identifies issues that pertain to broken
+(or older systems) as well as issues that are less esoteric.
+
+GENERAL
+
+* PC-BSD 10.1 and similar derivatives come with an insufficient CA bundle
+  for validating the MediaFire certificate.  Use either --lazy-ssl option
+  to connect (not recommended for long term use) or update the  CA bundle
+  that your OpenSSL stack is using.
+
+MEDIAFIRE FUSE
+
+* Lots of editor tools will not work until the MediaFire API is updated
+  to support zero-byte files.  Tools like LibreOffice will report strange
+  errors when trying to save files back to the FUSE drive.
+
+
+
+

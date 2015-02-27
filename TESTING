@@ -5,9 +5,10 @@ various platforms and scenarios that have been tested.
 Platforms
 ---------
 
-* Xubuntu 14.04.1 LTS (amd64)
-* FreeBSD 10.0 (amd64)
-* Debian 8 Jessie (amd64, i386)
+* Xubuntu 14.04.1 LTS (x86-84)
+* FreeBSD 10.0 (x86-64)
+* Debian 8 Jessie (x86-64, i386)
+* PC-BSD 10.1 (x86-64)
 
 Automated Test Cases
 --------------------
