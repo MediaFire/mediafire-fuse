@@ -1,7 +1,7 @@
 About
 =====
 
-The mediafire-tools project offers two programs to interact with a mediafire
+The mediafire-tools project offers these programs to interact with a mediafire
 account:
 
  - mediafire-shell: a simple shell for a mediafire account like ftp(1).
@@ -46,7 +46,7 @@ This project is using cmake, so you can build the software out-of-tree:
 Runtime Configuration
 =====================
 
-Both tools are configured through a configuration file at
+The tools are configured through a configuration file at
 `$XDG_CONFIG_HOME/mediafire-tools/config`. In case the variable
 `$XDG_CONFIG_HOME` is not set, the configuration file lives at
 `~/.config/mediafire-tools/config`. The format of the configuration file is the
