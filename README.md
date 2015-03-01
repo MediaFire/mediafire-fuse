@@ -6,6 +6,8 @@ account:
 
  - mediafire-shell: a simple shell for a mediafire account like ftp(1).
  - mediafire-fuse:  a fuse module that is able to mount the mediafire share locally.
+
+Coming soon:
  - mediafire-check: a tool that will check to see if a file is eligible for instant upload or whether or not a file is already in your account.
 
 License
