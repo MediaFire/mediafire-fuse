@@ -130,7 +130,7 @@ fsio_file_read(fsio_t *fsio,ssize_t *bytes)
         *bytes = file_size;
     }
 
-    fprintf(stderr,"fsio_file_read() %jd bytes\n",*bytes);
+    fprintf(stderr,"fsio_file_read() %zd bytes\n",*bytes);
 
     // zero out our counters
     _fsio_reset_counters(fsio);
