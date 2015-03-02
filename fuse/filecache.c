@@ -178,7 +178,7 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
     int             source;
     int             dest;
     fsio_t          *fsio = NULL;
-    off_t           bytes_to_copy = -1;     // -1 indicates entire file
+    ssize_t         bytes_to_copy = -1;     // -1 indicates entire file
 
     if (update) {
         cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
