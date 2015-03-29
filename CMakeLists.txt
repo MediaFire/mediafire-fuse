@@ -33,7 +33,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
        include_directories(${FUSE_INCLUDE_DIRS})
 endif()
 
-find_package(Jansson 2.4 REQUIRED)
+find_package(Jansson 2.2 REQUIRED)
 include_directories(${JANSSON_INCLUDE_DIRS})
 
 add_library(mfapi OBJECT
