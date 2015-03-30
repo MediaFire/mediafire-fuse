@@ -76,13 +76,6 @@ add_library(mfutils OBJECT
 	utils/hash.c
     utils/config.c)
 
-add_executable(mediafire-check
-    $<TARGET_OBJECTS:mfapi>
-    $<TARGET_OBJECTS:mfutils>
-    mfcheck/main.c)
-target_link_libraries(mediafire-check ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${JANSSON_LIBRARIES})
-
-
 add_executable(mediafire-shell
 	$<TARGET_OBJECTS:mfapi>
 	$<TARGET_OBJECTS:mfutils>
