@@ -177,6 +177,10 @@ int calc_sha256(FILE * file, unsigned char *hash, uint64_t * size)
 
     retval = fsio_file_read(fsio,&bytes);
 
+    if (size && *size == (uint64_t) -1) {
+	    *size = bytes;
+    }
+
     fsio_destroy(fsio,true);
     if(hasher != NULL) free(hasher);
 
