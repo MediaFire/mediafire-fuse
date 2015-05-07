@@ -109,6 +109,7 @@ struct mediafirefs_openfile {
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
 {
+    printf("FUNCTION: getattr. path: %s\n", path);
     /*
      * since getattr is called before every other call (except for getattr,
      * read and write) wee only call folder_tree_update in the getattr call
@@ -150,6 +151,7 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
 int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
                         off_t offset, struct fuse_file_info *info)
 {
+    printf("FUNCTION: readdir. path: %s\n", path);
     (void)offset;
     (void)info;
     struct mediafirefs_context_private *ctx;
@@ -166,6 +168,7 @@ int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
 
 void mediafirefs_destroy(void *user_ptr)
 {
+    printf("FUNCTION: destroy\n");
     FILE           *fd;
     struct mediafirefs_context_private *ctx;
 
@@ -196,6 +199,8 @@ void mediafirefs_destroy(void *user_ptr)
 
 int mediafirefs_mkdir(const char *path, mode_t mode)
 {
+    printf("FUNCTION: mkdir. path: %s\n", path);
+
     (void)mode;
 
     char           *dirname;
@@ -263,6 +268,7 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
 
 int mediafirefs_rmdir(const char *path)
 {
+    printf("FUNCTION: rmdir. path: %s\n", path);
     const char     *key;
     int             retval;
     struct mediafirefs_context_private *ctx;
@@ -304,6 +310,7 @@ int mediafirefs_rmdir(const char *path)
 
 int mediafirefs_unlink(const char *path)
 {
+    printf("FUNCTION: unlink. path: %s\n", path);
     const char     *key;
     int             retval;
     struct mediafirefs_context_private *ctx;
@@ -365,6 +372,7 @@ int mediafirefs_unlink(const char *path)
  */
 int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: open. path: %s\n", path);
     int             fd;
     bool            is_open;
     struct mediafirefs_openfile *openfile;
@@ -436,6 +444,8 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_create(const char *path, mode_t mode,
                        struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: create. path: %s\n", path);
+
     (void)mode;
 
     int             fd;
@@ -471,6 +481,8 @@ int mediafirefs_create(const char *path, mode_t mode,
 int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
                      struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: read. path: %s\n", path);
+
     (void)path;
     ssize_t         retval;
     struct mediafirefs_context_private *ctx;
@@ -490,6 +502,8 @@ int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
 int mediafirefs_write(const char *path, const char *buf, size_t size,
                       off_t offset, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: write. path: %s\n", path);
+
     (void)path;
     ssize_t         retval;
     struct mediafirefs_context_private *ctx;
@@ -516,6 +530,8 @@ int mediafirefs_write(const char *path, const char *buf, size_t size,
  */
 int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: release. path: %s\n", path);
+
     (void)path;
 
     FILE           *fh;
@@ -537,7 +553,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     // zero out check result to prevent spurious results later
     memset(&check_result,0,sizeof(check_result));
-
+    
     pthread_mutex_lock(&(ctx->mutex));
 
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
@@ -700,6 +716,8 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
 int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
 {
+    printf("FUNCTION: readlink. path: %s\n", path);
+
     (void)path;
     (void)buf;
     (void)bufsize;
@@ -718,6 +736,8 @@ int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
 
 int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
 {
+    printf("FUNCTION: mknod. path: %s\n", path);
+
     (void)path;
     (void)mode;
     (void)dev;
@@ -736,6 +756,8 @@ int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
 
 int mediafirefs_symlink(const char *target, const char *linkpath)
 {
+    printf("FUNCTION: symlink. target: %s, linkpath: %s\n", target, linkpath);
+
     (void)target;
     (void)linkpath;
     struct mediafirefs_context_private *ctx;
@@ -753,6 +775,8 @@ int mediafirefs_symlink(const char *target, const char *linkpath)
 
 int mediafirefs_rename(const char *oldpath, const char *newpath)
 {
+    printf("FUNCTION: rename. oldpath: %s, newpath %s\n", oldpath, newpath);
+
     char           *temp1;
     char           *temp2;
     char           *olddir;
@@ -851,6 +875,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
 int mediafirefs_link(const char *target, const char *linkpath)
 {
+    printf("FUNCTION: link. target: %s, linkpath %s\n", target, linkpath);
+
     (void)target;
     (void)linkpath;
     struct mediafirefs_context_private *ctx;
@@ -868,6 +894,7 @@ int mediafirefs_link(const char *target, const char *linkpath)
 
 int mediafirefs_chmod(const char *path, mode_t mode)
 {
+    printf("FUNCTION: chmod. path: %s\n", path);
     (void)path;
     (void)mode;
     struct mediafirefs_context_private *ctx;
@@ -885,6 +912,8 @@ int mediafirefs_chmod(const char *path, mode_t mode)
 
 int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 {
+    printf("FUNCTION: chown. path: %s\n", path);
+
     (void)path;
     (void)uid;
     (void)gid;
@@ -903,6 +932,8 @@ int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 
 int mediafirefs_truncate(const char *path, off_t length)
 {
+    printf("FUNCTION: truncate. path: %s, length: %zd\n", path, length);
+
     // FIXME: implement this
     (void)path;
     (void)length;
@@ -921,6 +952,8 @@ int mediafirefs_truncate(const char *path, off_t length)
 
 int mediafirefs_statfs(const char *path, struct statvfs *buf)
 {
+    printf("FUNCTION: statfs. path: %s\n", path);
+
     // TODO:    add mfuser to ctx and store it accross the system.
     //          instantiating it every time on a per-instance is not ideal.
 
@@ -985,6 +1018,8 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: flush. path: %s\n", path);
+
     (void)path;
     (void)file_info;
     struct mediafirefs_context_private *ctx;
@@ -1003,6 +1038,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_fsync(const char *path, int datasync,
                       struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: fsync. path: %s\n", path);
+
     (void)path;
     (void)datasync;
     (void)file_info;
@@ -1022,6 +1059,8 @@ int mediafirefs_fsync(const char *path, int datasync,
 int mediafirefs_setxattr(const char *path, const char *name,
                          const char *value, size_t size, int flags)
 {
+    printf("FUNCTION: setxattr. path: %s\n", path);
+
     (void)path;
     (void)name;
     (void)value;
@@ -1043,6 +1082,8 @@ int mediafirefs_setxattr(const char *path, const char *name,
 int mediafirefs_getxattr(const char *path, const char *name, char *value,
                          size_t size)
 {
+    printf("FUNCTION: getxattr. path: %s\n", path);
+
     (void)path;
     (void)name;
     (void)value;
@@ -1062,6 +1103,8 @@ int mediafirefs_getxattr(const char *path, const char *name, char *value,
 
 int mediafirefs_listxattr(const char *path, char *list, size_t size)
 {
+    printf("FUNCTION: listxattr. path: %s\n", path);
+
     (void)path;
     (void)list;
     (void)size;
@@ -1080,6 +1123,8 @@ int mediafirefs_listxattr(const char *path, char *list, size_t size)
 
 int mediafirefs_removexattr(const char *path, const char *list)
 {
+    printf("FUNCTION: removexattr. path: %s\n", path);
+
     (void)path;
     (void)list;
     struct mediafirefs_context_private *ctx;
@@ -1097,6 +1142,8 @@ int mediafirefs_removexattr(const char *path, const char *list)
 
 int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: opendir. path: %s\n", path);
+
     (void)path;
     (void)file_info;
     struct mediafirefs_context_private *ctx;
@@ -1114,6 +1161,8 @@ int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
 
 int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: releasedir. path: %s\n", path);
+
     (void)path;
     (void)file_info;
     struct mediafirefs_context_private *ctx;
@@ -1132,6 +1181,8 @@ int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_fsyncdir(const char *path, int datasync,
                          struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: fsyncdir. path: %s\n", path);
+
     (void)path;
     (void)datasync;
     (void)file_info;
@@ -1158,6 +1209,8 @@ void* mediafirefs_init(struct fuse_conn_info *conn)
 
 int mediafirefs_access(const char *path, int mode)
 {
+    printf("FUNCTION: access. path: %s\n", path);
+
     (void)path;
     (void)mode;
     struct mediafirefs_context_private *ctx;
@@ -1175,6 +1228,8 @@ int mediafirefs_access(const char *path, int mode)
 
 int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 {
+    printf("FUNCTION: utimens. path: %s\n", path);
+
     time_t          since_epoch;
     struct tm       local_time;
     static int      b_tzset = 0;        // has tzset() been called
