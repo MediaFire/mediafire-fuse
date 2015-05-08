@@ -135,7 +135,7 @@ fsio_file_read(fsio_t *fsio,ssize_t *bytes)
     // zero out our counters
     _fsio_reset_counters(fsio);
 
-    while(fsio->bytes_read < (size_t)*bytes)
+    while(fsio->bytes_read <= (size_t)*bytes)
     {
         bytes_read = _fsio_read_block(fsio);
 
