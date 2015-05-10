@@ -940,7 +940,10 @@ int mediafirefs_truncate(const char *path, off_t length)
 {
     printf("FUNCTION: truncate. path: %s, length: %zd\n", path, length);
 
-    // FIXME: implement this
+    bool            is_file = 0;
+    const char     *key = NULL;
+    int             retval;
+
     (void)path;
     (void)length;
     struct mediafirefs_context_private *ctx;
@@ -949,11 +952,46 @@ int mediafirefs_truncate(const char *path, off_t length)
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    fprintf(stderr, "truncate not implemented\n");
+    if (length != 0) {
+	fprintf(stderr, "Truncate is not defined for length other than 0\n");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -EINVAL;
+    }
+
+    // look up the key
+    key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
+    if (key == NULL) {
+        fprintf(stderr, "key is NULL\n");
+        pthread_mutex_unlock(&(ctx->mutex));
+        return -ENOENT;
+    }
+
+    is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, path);
+
+    if (!is_file) {
+	fprintf(stderr, "Truncate is only defined for files, not folders\n");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -EISDIR;
+    }
+
+    if (!stringv_mem(ctx->sv_writefiles, path)) {
+	fprintf(stderr, "File is not opened for writing.\n");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -EACCES;
+    }
+
+
+    retval = mfconn_api_file_update(ctx->conn, key, NULL, NULL, true);
+
+    if (retval == -1) {
+	fprintf(stderr, "file update failed.\n");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -ENOENT;
+    }
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOSYS;
+    return 0;
 }
 
 int mediafirefs_statfs(const char *path, struct statvfs *buf)
