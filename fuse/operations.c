@@ -534,20 +534,9 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     (void)path;
 
-//    FILE           *fh;
-//    char           *file_name;
-//    char           *dir_name;
-//    const char     *folder_key;
-//    char           *upload_key;
-//    char           *temp1;
-//    char           *temp2;
-//    int             retval;
     struct mediafirefs_context_private *ctx;
     struct mediafirefs_openfile *openfile;
     struct mfconn_upload_check_result check_result;
-//    unsigned char   bhash[SHA256_DIGEST_LENGTH];
-//    char           *hash;
-//    uint64_t        size;
 
     ctx = fuse_get_context()->private_data;
 
@@ -586,133 +575,11 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
         exit(1);
     }
 
-    // if the file only exists locally, an initial upload has to be done
-
-/*
-    if (openfile->is_local) {
-        // pass a copy because dirname and basename may modify their argument
-        temp1 = strdup(openfile->path);
-        file_name = basename(temp1);
-        temp2 = strdup(openfile->path);
-        dir_name = dirname(temp2);
-
-        fh = fdopen(openfile->fd, "r");
-        rewind(fh);
-
-        folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
-
-	size = -1;
-        retval = calc_sha256(fh, bhash, &size);
-        rewind(fh);
-
-        if (retval != 0) {
-            fprintf(stderr, "failed to calculate hash\n");
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            pthread_mutex_unlock(&(ctx->mutex));
-            return -EACCES;
-        }
-
-        hash = binary2hex(bhash, SHA256_DIGEST_LENGTH);
-
-        retval = mfconn_api_upload_check(ctx->conn, file_name, hash, size,
-                                         folder_key, &check_result);
-
-        if (retval != 0) {
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-            fprintf(stderr, "mfconn_api_upload_check failed\n");
-            fprintf(stderr, "file_name: %s\n",file_name);
-            fprintf(stderr, "hash: %s\n",hash);
-            fprintf(stderr, "size: %jd\n",size);
-            fprintf(stderr, "folder_key: %s\n",folder_key);
-            pthread_mutex_unlock(&(ctx->mutex));
-            return -EACCES;
-        }
-
-        if (check_result.hash_exists) {
-            // hash exists, so use upload/instant
-
-            retval = mfconn_api_upload_instant(ctx->conn, NULL,
-                                               file_name, hash, size,
-                                               folder_key);
-
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-
-            if (retval != 0) {
-                fprintf(stderr, "mfconn_api_upload_instant failed\n");
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -EACCES;
-            }
-        } else {
-            // hash does not exist, so do full upload
-            upload_key = NULL;
-            retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                              fh, file_name, &upload_key);
-
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-
-            if (retval != 0 || upload_key == NULL) {
-
-                fprintf(stderr, "mfconn_api_upload_simple failed\n");
-                fprintf(stderr, "file_name: %s\n",file_name);
-                fprintf(stderr, "hash: %s\n",hash);
-                fprintf(stderr, "size: %jd\n",size);
-                fprintf(stderr, "folder_key: %s\n",folder_key);
-
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -EACCES;
-            }
-            // poll for completion
-            retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
-            free(upload_key);
-
-            if (retval != 0) {
-                fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -1;
-            }
-        }
-
-        folder_tree_update(ctx->tree, ctx->conn, true);
-        pthread_mutex_unlock(&(ctx->mutex));
-        return 0;
-    }
-*/
-    // the file was not opened readonly and also existed on the remote
-    // thus, we have to check whether any changes were made and if yes, upload
-    // a patch
-
     close(openfile->fd);
 
-//    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
     free(openfile->path);
     free(openfile);
 
-/*
-    if (retval != 0) {
-        fprintf(stderr, "folder_tree_upload_patch failed\n");
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -EACCES;
-    }
-*/
     folder_tree_update(ctx->tree, ctx->conn, true);
 
     pthread_mutex_unlock(&(ctx->mutex));
