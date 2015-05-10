@@ -852,7 +852,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
-            retval = mfconn_api_file_update(ctx->conn, key, newname, NULL);
+            retval = mfconn_api_file_update(ctx->conn, key, newname, NULL, false);
         } else {
             retval = mfconn_api_folder_update(ctx->conn, key, newname, NULL);
         }
@@ -1441,7 +1441,7 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
     fprintf(stderr, "utimens file set: %s\n", print_time);
 
     if (is_file) {
-        retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time);
+        retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time, false);
     } else {
         retval = mfconn_api_folder_update(ctx->conn, key, NULL, print_time);
     }
