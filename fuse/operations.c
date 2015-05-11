@@ -930,7 +930,7 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 {
 //    printf("FUNCTION: flush. path: %s\n", path);
-
+    (void) path;
     FILE           *fh;
     char           *file_name;
     char           *dir_name;
