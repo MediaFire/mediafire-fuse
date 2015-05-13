@@ -109,6 +109,7 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
 
     source_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
 
+    target_size = -1;
     retval = calc_sha256(target_fh, hash, &target_size);
 
     if (retval != 0) {
