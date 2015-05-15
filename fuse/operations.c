@@ -834,7 +834,7 @@ int mediafirefs_truncate(const char *path, off_t length)
     }
 
     retval = folder_tree_truncate_file(ctx->tree, ctx->conn, path);
-
+    
     if (retval == -1) {
 	pthread_mutex_unlock(&(ctx->mutex));
 	return -ENOENT;
@@ -963,11 +963,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 
         if (retval != 0) {
             fprintf(stderr, "failed to calculate hash\n");
-//            fclose(fh);
             free(temp1);
             free(temp2);
-//            free(openfile->path);
-//            free(openfile);
             pthread_mutex_unlock(&(ctx->mutex));
             return -EACCES;
         }
@@ -978,11 +975,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
                                          folder_key, &check_result);
 
         if (retval != 0) {
-//            fclose(fh);
             free(temp1);
             free(temp2);
-//            free(openfile->path);
-//            free(openfile);
             free(hash);
             fprintf(stderr, "mfconn_api_upload_check failed\n");
             fprintf(stderr, "file_name: %s\n",file_name);
@@ -1000,11 +994,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
                                                file_name, hash, size,
                                                folder_key);
 
-//            fclose(fh);
             free(temp1);
             free(temp2);
-//            free(openfile->path);
-//            free(openfile);
             free(hash);
 
             if (retval != 0) {
@@ -1018,11 +1009,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
             retval = mfconn_api_upload_simple(ctx->conn, folder_key,
                                               fh, file_name, &upload_key);
 
-//            fclose(fh);
             free(temp1);
             free(temp2);
-//            free(openfile->path);
-//            free(openfile);
             free(hash);
 
             if (retval != 0 || upload_key == NULL) {
@@ -1072,19 +1060,6 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-/*    
-    (void)path;
-    (void)file_info;
-    struct mediafirefs_context_private *ctx;
-
-    ctx = fuse_get_context()->private_data;
-
-    pthread_mutex_lock(&(ctx->mutex));
-
-    fprintf(stderr, "flush is a no-op\n");
-
-    pthread_mutex_unlock(&(ctx->mutex));
-*/
     return 0;
 }
 
