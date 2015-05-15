@@ -209,16 +209,19 @@ fsio_file_copy(fsio_t *fsio,ssize_t *bytes)
 
         // were done
         if(bytes_read == 0) break;
-
+	fsio->data_sz = bytes_read;
         bytes_written = _fsio_write_blocks(fsio);
 
         if(bytes_written != bytes_read) break;
+
 
         bytes_total += bytes_written;
     }
 
     if(bytes_total < *bytes)
     {
+	fprintf(stderr, "ERROR: bytes read: %zd, bytes written: %zd\n",
+		bytes_read, bytes_written);
         *bytes = bytes_total;
         return -1;
     }
