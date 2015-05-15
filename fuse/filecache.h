@@ -26,6 +26,11 @@ int             filecache_open_file(const char *quickkey,
                                     const char *filecache, mfconn * conn,
                                     mode_t mode, bool update);
 
+int             filecache_truncate_file(const char *quickkey, const char *key,
+                                    uint64_t local_revision,
+                                    uint64_t remote_revision,
+                                    const char *filecache_path, mfconn * conn);
+
 int             filecache_upload_patch(const char *quickkey,
                                        uint64_t local_revision,
                                        const char *filecache, mfconn * conn);

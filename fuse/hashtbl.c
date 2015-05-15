@@ -772,6 +772,42 @@ int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
     return 0;
 }
 
+int folder_tree_truncate_file(folder_tree * tree, mfconn * conn,
+			      const char *path)
+{
+    struct h_entry *entry;
+    int             retval;
+    bool            is_file = 0;
+    const char     *key = NULL;
+
+    key = folder_tree_path_get_key(tree, conn, path);
+    if (key == NULL) {
+	fprintf(stderr, "key is NULL\n");
+	return -1;
+    }
+
+    is_file = folder_tree_path_is_file(tree, conn, path);
+    if (!is_file) {
+	fprintf(stderr, "Truncate is only defined for files, not folders\n");
+	return -1;
+    }
+
+    entry = folder_tree_lookup_path(tree, conn, path);
+    if (entry == NULL || entry->atime == 0) {
+	return -ENOENT;
+    }
+    retval = filecache_truncate_file(entry->key, key, entry->local_revision,
+				     entry->remote_revision, tree->filecache,
+				     conn);
+    if (retval < 0) {
+	fprintf(stderr, "filecache truncate file failed\n");
+	return -1;
+    }
+    entry->local_revision = entry->remote_revision;
+      
+    return 0;
+}
+
 int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path,
                           mode_t mode, bool update)
 {

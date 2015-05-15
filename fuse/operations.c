@@ -105,6 +105,8 @@ struct mediafirefs_openfile {
     bool            is_readonly;
     // whether or not to do a new file upload when closing
     bool            is_local;
+    // whether the corresponding remote file size is zero.
+    bool            is_empty_on_remote;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -414,10 +416,20 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
         return fd;
     }
 
+    struct stat st;		/* count file size */
+    int n = fstat(fd, &st);
+    if (n == -1) {
+	perror("fstat");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -EACCES;
+    }
+    fprintf(stderr, "File size is: %zd\n", st.st_size);
+
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
     openfile->is_local = false;
     openfile->path = strdup(path);
+    openfile->is_empty_on_remote = st.st_size == 0 ? true : false;
 
     if ((file_info->flags & O_ACCMODE) == O_RDONLY) {
         openfile->is_readonly = true;
@@ -807,12 +819,8 @@ int mediafirefs_truncate(const char *path, off_t length)
 {
     printf("FUNCTION: truncate. path: %s, length: %zd\n", path, length);
 
-    bool            is_file = 0;
-    const char     *key = NULL;
     int             retval;
 
-    (void)path;
-    (void)length;
     struct mediafirefs_context_private *ctx;
 
     ctx = fuse_get_context()->private_data;
@@ -825,33 +833,9 @@ int mediafirefs_truncate(const char *path, off_t length)
 	return -EINVAL;
     }
 
-    // look up the key
-    key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
-    if (key == NULL) {
-        fprintf(stderr, "key is NULL\n");
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -ENOENT;
-    }
-
-    is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, path);
-
-    if (!is_file) {
-	fprintf(stderr, "Truncate is only defined for files, not folders\n");
-	pthread_mutex_unlock(&(ctx->mutex));
-	return -EISDIR;
-    }
-
-    if (!stringv_mem(ctx->sv_writefiles, path)) {
-	fprintf(stderr, "File is not opened for writing.\n");
-	pthread_mutex_unlock(&(ctx->mutex));
-	return -EACCES;
-    }
-
-
-    retval = mfconn_api_file_update(ctx->conn, key, NULL, NULL, true);
+    retval = folder_tree_truncate_file(ctx->tree, ctx->conn, path);
 
     if (retval == -1) {
-	fprintf(stderr, "file update failed.\n");
 	pthread_mutex_unlock(&(ctx->mutex));
 	return -ENOENT;
     }
@@ -1072,16 +1056,16 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     // thus, we have to check whether any changes were made and if yes, upload
     // a patch
 
-//    close(openfile->fd);
+    if (1) {
+	retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
 
-    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
-//    free(openfile->path);
-//    free(openfile);
+	if (retval != 0) {
+	    fprintf(stderr, "folder_tree_upload_patch failed\n");
+	    pthread_mutex_unlock(&(ctx->mutex));
+	    return -EACCES;
+	}
+    } else {			/* zero byte file */
 
-    if (retval != 0) {
-        fprintf(stderr, "folder_tree_upload_patch failed\n");
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -EACCES;
     }
 
     folder_tree_update(ctx->tree, ctx->conn, true);

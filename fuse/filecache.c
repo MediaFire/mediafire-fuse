@@ -166,6 +166,51 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     return 0;
 }
 
+#define _POSIX_C_SOURCE 200809L
+int filecache_truncate_file(const char *quickkey, const char *key,
+			    uint64_t local_revision,
+			    uint64_t remote_revision,
+			    const char *filecache_path, mfconn * conn)
+{
+    char           *filepath;
+    int             retval;
+    int             fd;
+
+    /* truncate file on remote */
+    retval = mfconn_api_file_update(conn, key, NULL, NULL, true);
+    if (retval == -1) {
+	fprintf(stderr, "file update failed\n");
+	return -1;
+    }
+
+    /* truncate file on local */
+    filepath = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+			      local_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+			      remote_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+			      local_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+			      remote_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    return 0;
+}
+
 int filecache_open_file(const char *quickkey, uint64_t local_revision,
                         uint64_t remote_revision, uint64_t fsize,
                         const unsigned char *fhash,
