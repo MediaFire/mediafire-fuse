@@ -105,8 +105,6 @@ struct mediafirefs_openfile {
     bool            is_readonly;
     // whether or not to do a new file upload when closing
     bool            is_local;
-    // whether the corresponding remote file size is zero.
-    bool            is_empty_on_remote;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -416,20 +414,10 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
         return fd;
     }
 
-    struct stat st;		/* count file size */
-    int n = fstat(fd, &st);
-    if (n == -1) {
-	perror("fstat");
-	pthread_mutex_unlock(&(ctx->mutex));
-	return -EACCES;
-    }
-    fprintf(stderr, "File size is: %zd\n", st.st_size);
-
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
     openfile->is_local = false;
     openfile->path = strdup(path);
-    openfile->is_empty_on_remote = st.st_size == 0 ? true : false;
 
     if ((file_info->flags & O_ACCMODE) == O_RDONLY) {
         openfile->is_readonly = true;
@@ -929,6 +917,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     unsigned char   bhash[SHA256_DIGEST_LENGTH];
     char           *hash;
     uint64_t        size;
+    off_t        newsize;
+    off_t        oldsize;
 
     ctx = fuse_get_context()->private_data;
 
@@ -938,6 +928,12 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     pthread_mutex_lock(&(ctx->mutex));
 
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
+
+    folder_tree_get_new_and_old_sizes(ctx->tree, ctx->conn, path,
+				      &newsize, &oldsize);
+
+    fprintf(stderr, "newsize: %zd\n", newsize);
+    fprintf(stderr, "oldsize: %zd\n", oldsize);
 
     if (openfile->is_readonly) {
 	/* nothing to do here */
@@ -1044,7 +1040,11 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     // thus, we have to check whether any changes were made and if yes, upload
     // a patch
 
-    if (1) {
+    if (oldsize == 0) {		/* zero byte file update */
+	    if (newsize > 0) {
+
+	    }
+    } else {
 	retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
 
 	if (retval != 0) {
@@ -1052,9 +1052,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 	    pthread_mutex_unlock(&(ctx->mutex));
 	    return -EACCES;
 	}
-    } else {			/* zero byte file */
-
-    }
+    } 
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 

@@ -772,6 +772,45 @@ int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
     return 0;
 }
 
+int folder_tree_get_new_and_old_sizes(folder_tree * tree, mfconn * conn,
+				      const char * path, off_t * newsize,
+				      off_t * oldsize)
+{
+    struct h_entry *entry;
+    int             retval;
+    bool            is_file = 0;
+    const char     *key = NULL;
+
+    key = folder_tree_path_get_key(tree, conn, path);
+    if (key == NULL) {
+	fprintf(stderr, "key is NULL\n");
+	return -1;
+    }
+
+    is_file = folder_tree_path_is_file(tree, conn, path);
+    if (!is_file) {
+	fprintf(stderr, "Epxected file, got something else\n");
+	return -1;
+    }
+
+    entry = folder_tree_lookup_path(tree, conn, path);
+    if (entry == NULL || entry->atime == 0) {
+	return -ENOENT;
+    }
+
+    retval = filecache_get_new_and_old_sizes(entry->key,
+					     entry->local_revision,
+					     tree->filecache, newsize,
+					     oldsize);
+    if (retval == -1) {
+	fprintf(stderr, "filecache_get_new_and_old_sizes failed\n");
+	return -1;
+    }
+
+    return 0;
+}
+
+
 int folder_tree_truncate_file(folder_tree * tree, mfconn * conn,
 			      const char *path)
 {

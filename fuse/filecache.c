@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "../utils/hash.h"
 #include "../utils/xdelta3.h"
@@ -166,7 +167,41 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     return 0;
 }
 
-#define _POSIX_C_SOURCE 200809L
+int filecache_get_new_and_old_sizes(const char *quickkey,
+				    uint64_t local_revision,
+				    const char *filecache_path,
+				    off_t *newsize, off_t *oldsize)
+{
+    char           *cachefile;
+    char           *newfile;
+    int            retval;
+
+    cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+                              local_revision);
+    newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+                            local_revision);
+    
+    struct stat st;		/* count file size */
+    retval = stat(cachefile, &st);
+    if (retval == -1) {
+	perror("fstat");
+	*oldsize = -1;
+	return -1;
+    }
+    *oldsize = st.st_size;
+    fprintf(stderr, "Old file size is: %zd\n", st.st_size);
+
+    retval = stat(newfile, &st);
+    if (retval == -1) {
+	perror("fstat");
+	*newsize = -1;
+	return -1;
+    }
+    *newsize = st.st_size;
+    fprintf(stderr, "New file size is: %zd\n", st.st_size);
+
+    return 0;
+}
 int filecache_truncate_file(const char *quickkey, const char *key,
 			    uint64_t local_revision,
 			    uint64_t remote_revision,

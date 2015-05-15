@@ -80,6 +80,11 @@ int             folder_tree_open_file(folder_tree * tree, mfconn * conn,
                                       bool update);
 int             folder_tree_truncate_file(folder_tree * tree, mfconn * conn,
 					  const char *path);
+int             folder_tree_get_new_and_old_sizes(folder_tree * tree,
+						  mfconn * conn,
+						  const char * path,
+						  off_t * newsize,
+						  off_t * oldsize);
 int             folder_tree_tmp_open(folder_tree * tree);
 
 int             folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
