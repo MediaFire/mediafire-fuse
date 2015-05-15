@@ -162,6 +162,7 @@ int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
 
 int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                          FILE * fh, const char *file_name,
+					 bool replace,
                                          char **upload_key);
 
 int             mfconn_api_upload_patch(mfconn * conn, const char *quickkey,

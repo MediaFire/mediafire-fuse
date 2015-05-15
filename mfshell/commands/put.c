@@ -69,7 +69,7 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
 
     retval = mfconn_api_upload_simple(mfshell->conn,
                                       folder_get_key(mfshell->folder_curr),
-                                      fh, file_name, &upload_key);
+                                      fh, file_name, false, &upload_key);
 
     fclose(fh);
     free(temp);

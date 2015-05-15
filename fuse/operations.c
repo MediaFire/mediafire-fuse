@@ -902,7 +902,7 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 {
     printf("FUNCTION: flush. path: %s\n", path);
-    (void) path;
+
     FILE           *fh;
     char           *file_name;
     char           *dir_name;
@@ -917,8 +917,6 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     unsigned char   bhash[SHA256_DIGEST_LENGTH];
     char           *hash;
     uint64_t        size;
-    off_t        newsize;
-    off_t        oldsize;
 
     ctx = fuse_get_context()->private_data;
 
@@ -928,12 +926,6 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     pthread_mutex_lock(&(ctx->mutex));
 
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
-
-    folder_tree_get_new_and_old_sizes(ctx->tree, ctx->conn, path,
-				      &newsize, &oldsize);
-
-    fprintf(stderr, "newsize: %zd\n", newsize);
-    fprintf(stderr, "oldsize: %zd\n", oldsize);
 
     if (openfile->is_readonly) {
 	/* nothing to do here */
@@ -1003,7 +995,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
             // hash does not exist, so do full upload
             upload_key = NULL;
             retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                              fh, file_name, &upload_key);
+                                              fh, file_name, false, &upload_key);
 
             free(temp1);
             free(temp2);
@@ -1040,19 +1032,14 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     // thus, we have to check whether any changes were made and if yes, upload
     // a patch
 
-    if (oldsize == 0) {		/* zero byte file update */
-	    if (newsize > 0) {
+    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
 
-	    }
-    } else {
-	retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
-
-	if (retval != 0) {
+    if (retval != 0) {
 	    fprintf(stderr, "folder_tree_upload_patch failed\n");
 	    pthread_mutex_unlock(&(ctx->mutex));
 	    return -EACCES;
-	}
-    } 
+    }
+
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 

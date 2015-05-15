@@ -42,6 +42,20 @@
 #define TRUE true
 #endif
 
+static int      get_file_size(const char *filepath)
+{
+    struct stat st;
+    int     retval;
+
+    retval = stat(filepath, &st);
+    if (retval == -1) {
+	perror("fstat");
+	return -1;
+    }
+
+    return st.st_size;
+}
+
 static int      filecache_update_file(const char *filecache_path,
                                       mfconn * conn, const char *quickkey,
                                       uint64_t local_revision,
@@ -61,7 +75,8 @@ static int      filecache_patch_file(const char *filecache_path,
                                      uint64_t target_revision);
 
 int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
-                           const char *filecache_path, mfconn * conn)
+                           const char *filecache_path, mfconn * conn,
+			   const char *filename, const char *folder_key)
 {
     FILE           *source_fh;
     FILE           *target_fh;
@@ -75,6 +90,8 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     char           *patch_file;
     int             retval;
     char           *upload_key;
+    int             cache_filesize;
+
 
     cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
                               local_revision);
@@ -85,6 +102,8 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
         free(cachefile);
         return -1;
     }
+
+    cache_filesize = get_file_size(cachefile);
     free(cachefile);
 
     newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
@@ -143,13 +162,23 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     rewind(source_fh);
     rewind(target_fh);
     retval = xdelta3_diff(source_fh, target_fh, patchfile_fh);
-    fclose(source_fh);
-    fclose(target_fh);
-    fclose(patchfile_fh);
+    fclose(patchfile_fh);    
 
     upload_key = NULL;
-    retval = mfconn_api_upload_patch(conn, quickkey, source_hash, target_hash,
-                                     target_size, patch_file, &upload_key);
+    if (cache_filesize > 0) {
+	fprintf(stderr, "uploading patch\n");
+	retval = mfconn_api_upload_patch(conn, quickkey, source_hash,
+					 target_hash, target_size,
+					 patch_file, &upload_key);
+    } else {
+	fprintf(stderr, "updating file content\n");
+	retval = mfconn_api_upload_simple(conn, folder_key, target_fh,
+					  filename, true, &upload_key);
+    }
+
+    fclose(source_fh);
+    fclose(target_fh);
+
 
     if (retval != 0 || upload_key == NULL) {
         fprintf(stderr, "mfconn_api_upload_patch failed\n");
@@ -167,41 +196,7 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     return 0;
 }
 
-int filecache_get_new_and_old_sizes(const char *quickkey,
-				    uint64_t local_revision,
-				    const char *filecache_path,
-				    off_t *newsize, off_t *oldsize)
-{
-    char           *cachefile;
-    char           *newfile;
-    int            retval;
 
-    cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                              local_revision);
-    newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
-                            local_revision);
-    
-    struct stat st;		/* count file size */
-    retval = stat(cachefile, &st);
-    if (retval == -1) {
-	perror("fstat");
-	*oldsize = -1;
-	return -1;
-    }
-    *oldsize = st.st_size;
-    fprintf(stderr, "Old file size is: %zd\n", st.st_size);
-
-    retval = stat(newfile, &st);
-    if (retval == -1) {
-	perror("fstat");
-	*newsize = -1;
-	return -1;
-    }
-    *newsize = st.st_size;
-    fprintf(stderr, "New file size is: %zd\n", st.st_size);
-
-    return 0;
-}
 int filecache_truncate_file(const char *quickkey, const char *key,
 			    uint64_t local_revision,
 			    uint64_t remote_revision,

@@ -38,7 +38,8 @@ static int      _decode_upload_simple(mfhttp * conn, void *data);
 
 int
 mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
-                         FILE * fh, const char *file_name, char **upload_key)
+                         FILE * fh, const char *file_name, bool replace,
+			 char **upload_key)
 {
     const char     *api_call;
     int             retval;
@@ -86,10 +87,18 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                                 "upload/simple.php",
                                                 "?response_format=json");
         } else {
-            api_call = mfconn_create_signed_get(conn, 0,
-                                                "upload/simple.php",
-                                                "?response_format=json"
-                                                "&folder_key=%s", folderkey);
+	    if (replace) {
+		api_call = mfconn_create_signed_get(conn, 0,
+						    "upload/simple.php",
+						    "?response_format=json"
+						    "&action_on_duplicate=replace"
+						    "&folder_key=%s", folderkey);
+	    } else {
+		api_call = mfconn_create_signed_get(conn, 0,
+						    "upload/simple.php",
+						    "?response_format=json"
+						    "&folder_key=%s", folderkey);
+	    }
         }
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");

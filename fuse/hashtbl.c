@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <time.h>
+#include <libgen.h>
 
 #include "hashtbl.h"
 #include "filecache.h"
@@ -754,6 +755,11 @@ int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
 {
     struct h_entry *entry;
     int             retval;
+    char           *filename;
+    char           *dir_name;
+    char           *temp1;
+    char           *temp2;
+    const char     *folder_key;
 
     entry = folder_tree_lookup_path(tree, conn, path);
     /* either file not found or found entry is not a file */
@@ -761,8 +767,18 @@ int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
         return -ENOENT;
     }
 
+
+    temp1 = strdup(path);
+    filename = basename(temp1);
+    temp2 = strdup(path);
+    dir_name = dirname(temp2);
+
+    folder_key = folder_tree_path_get_key(tree, conn, dir_name);
+
     retval = filecache_upload_patch(entry->key, entry->local_revision,
-                                    tree->filecache, conn);
+                                    tree->filecache, conn, filename, folder_key);
+    free(temp1);
+    free(temp2);
 
     if (retval != 0) {
         fprintf(stderr, "filecache_upload_patch failed\n");
@@ -771,45 +787,6 @@ int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
 
     return 0;
 }
-
-int folder_tree_get_new_and_old_sizes(folder_tree * tree, mfconn * conn,
-				      const char * path, off_t * newsize,
-				      off_t * oldsize)
-{
-    struct h_entry *entry;
-    int             retval;
-    bool            is_file = 0;
-    const char     *key = NULL;
-
-    key = folder_tree_path_get_key(tree, conn, path);
-    if (key == NULL) {
-	fprintf(stderr, "key is NULL\n");
-	return -1;
-    }
-
-    is_file = folder_tree_path_is_file(tree, conn, path);
-    if (!is_file) {
-	fprintf(stderr, "Epxected file, got something else\n");
-	return -1;
-    }
-
-    entry = folder_tree_lookup_path(tree, conn, path);
-    if (entry == NULL || entry->atime == 0) {
-	return -ENOENT;
-    }
-
-    retval = filecache_get_new_and_old_sizes(entry->key,
-					     entry->local_revision,
-					     tree->filecache, newsize,
-					     oldsize);
-    if (retval == -1) {
-	fprintf(stderr, "filecache_get_new_and_old_sizes failed\n");
-	return -1;
-    }
-
-    return 0;
-}
-
 
 int folder_tree_truncate_file(folder_tree * tree, mfconn * conn,
 			      const char *path)
