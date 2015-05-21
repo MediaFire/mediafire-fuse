@@ -355,17 +355,12 @@ int mediafirefs_unlink(const char *path)
 /*
  * the following restrictions apply:
  *  1. a file can be opened in read-only mode more than once at a time
- *  2. a file can only be be opened in write-only or read-write mode if it is
- *     not open for writing at the same time
+ *  2. a file can only be be opened in write-only or read-write mode
+ *     more than once at a time.
  *  3. a file that is only local and has not been uploaded yet cannot be read
  *     from
  *  4. a file that has opened in any way will not be updated to its latest
  *     remote revision until all its opened handles are closed
- *
- *  Point 2 is enforced by a lookup in the writefiles string vector. If the
- *  path is in there then it was either just created locally or opened with
- *  write-only or read-write. In both cases it must not be opened for
- *  writing again.
  *
  *  Point 3 is enforced by the lookup in the hashtable failing.
  *
@@ -532,10 +527,6 @@ int mediafirefs_write(const char *path, const char *buf, size_t size,
 /*
  * note: the return value of release() is ignored by fuse
  *
- * also, release() is called asynchronously: the close() call will finish
- * before this function returns. Thus, the uploading should be done once flush
- * is called but this becomes tricky because mediafire doesn't like files of
- * zero length and flush() is often called right after creation.
  */
 int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 {
