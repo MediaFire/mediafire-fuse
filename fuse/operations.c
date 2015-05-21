@@ -105,6 +105,8 @@ struct mediafirefs_openfile {
     bool            is_readonly;
     // whether or not to do a new file upload when closing
     bool            is_local;
+    // is true if file has been updated since last flush
+    bool            is_flushed;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -418,6 +420,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
     openfile->fd = fd;
     openfile->is_local = false;
     openfile->path = strdup(path);
+    openfile->is_flushed = true;
 
     if ((file_info->flags & O_ACCMODE) == O_RDONLY) {
         openfile->is_readonly = true;
@@ -468,6 +471,7 @@ int mediafirefs_create(const char *path, mode_t mode,
     openfile->is_local = true;
     openfile->is_readonly = false;
     openfile->path = strdup(path);
+    openfile->is_flushed = false;
     file_info->fh = (uintptr_t) openfile;
 
     // add to writefiles
@@ -510,13 +514,15 @@ int mediafirefs_write(const char *path, const char *buf, size_t size,
     (void)path;
     ssize_t         retval;
     struct mediafirefs_context_private *ctx;
+    struct mediafirefs_openfile *openfile;
 
     ctx = fuse_get_context()->private_data;
     pthread_mutex_lock(&(ctx->mutex));
 
-    retval =
-        pwrite(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
-               buf, size, offset);
+    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
+
+    retval = pwrite(openfile->fd, buf, size, offset);
+    openfile->is_flushed = false;
 
     pthread_mutex_unlock(&(ctx->mutex));
 
@@ -540,6 +546,10 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
     struct mediafirefs_context_private *ctx;
     struct mediafirefs_openfile *openfile;
     struct mfconn_upload_check_result check_result;
+
+    /* filesystems should not assume that flush will ever be called.
+     * since we do our uploading in flush, we must make sure flush is called*/
+    mediafirefs_flush(path, file_info);
 
     ctx = fuse_get_context()->private_data;
 
@@ -922,6 +932,12 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     char           *hash;
     uint64_t        size;
 
+    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
+
+    if (openfile->is_flushed) {
+	return 0;
+    }
+
     ctx = fuse_get_context()->private_data;
 
     // zero out check result to prevent spurious results later
@@ -929,7 +945,6 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
     
     pthread_mutex_lock(&(ctx->mutex));
 
-    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
 
     if (openfile->is_readonly) {
 	/* nothing to do here */
@@ -1028,6 +1043,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
         }
 
         folder_tree_update(ctx->tree, ctx->conn, true);
+	openfile->is_flushed = true;
         pthread_mutex_unlock(&(ctx->mutex));
         return 0;
     }
@@ -1047,6 +1063,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 
+    openfile->is_flushed = true;
     pthread_mutex_unlock(&(ctx->mutex));
 
     return 0;
