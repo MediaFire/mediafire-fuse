@@ -386,9 +386,9 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
      * not read-only mode and abort if yes */
     if ((file_info->flags & O_ACCMODE) != O_RDONLY
         && stringv_mem(ctx->sv_writefiles, path)) {
-        fprintf(stderr, "file %s was already opened for writing\n", path);
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -EACCES;
+//        fprintf(stderr, "file %s was already opened for writing\n", path);
+//        pthread_mutex_unlock(&(ctx->mutex));
+//        return -EACCES;
     }
 
     is_open = false;
@@ -405,7 +405,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
         && stringv_mem(ctx->sv_writefiles, path)) {
         is_open = true;
     }
-
+    is_open = false;
     fd = folder_tree_open_file(ctx->tree, ctx->conn, path, file_info->flags,
                                !is_open);
     if (fd < 0) {
@@ -462,7 +462,7 @@ int mediafirefs_create(const char *path, mode_t mode,
         pthread_mutex_unlock(&(ctx->mutex));
         return -EACCES;
     }
-
+    
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
     openfile->is_local = true;
@@ -474,6 +474,9 @@ int mediafirefs_create(const char *path, mode_t mode,
     stringv_add(ctx->sv_writefiles, path);
 
     pthread_mutex_unlock(&(ctx->mutex));
+
+    mediafirefs_flush(path, file_info);
+//    openfile->is_local = false;
 
     return 0;
 }
@@ -568,13 +571,14 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
                 openfile->path);
         exit(1);
     }
+/*
     if (stringv_mem(ctx->sv_writefiles, openfile->path) != 0) {
         fprintf(stderr,
                 "FATAL: writefiles entry %s was found more than once\n",
                 openfile->path);
         exit(1);
     }
-
+*/
     close(openfile->fd);
 
     free(openfile->path);
