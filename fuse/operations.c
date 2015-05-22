@@ -371,7 +371,6 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
     printf("FUNCTION: open. path: %s\n", path);
     int             fd;
-    bool            is_open;
     struct mediafirefs_openfile *openfile;
     struct mediafirefs_context_private *ctx;
 
@@ -379,32 +378,8 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    /* if file is not opened read-only, check if it was already opened in a
-     * not read-only mode and abort if yes */
-    if ((file_info->flags & O_ACCMODE) != O_RDONLY
-        && stringv_mem(ctx->sv_writefiles, path)) {
-//        fprintf(stderr, "file %s was already opened for writing\n", path);
-//        pthread_mutex_unlock(&(ctx->mutex));
-//        return -EACCES;
-    }
-
-    is_open = false;
-    // check if the file was already opened
-    // check read-only files first
-    if (stringv_mem(ctx->sv_readonlyfiles, path)) {
-        is_open = true;
-    }
-    // check writable files only if the file was
-    //   - not yet found in the read-only files
-    //   - the file is opened in read-only mode (because otherwise the
-    //     writable files were already searched above without failing)
-    if (!is_open && (file_info->flags & O_ACCMODE) == O_RDONLY
-        && stringv_mem(ctx->sv_writefiles, path)) {
-        is_open = true;
-    }
-    is_open = false;
     fd = folder_tree_open_file(ctx->tree, ctx->conn, path, file_info->flags,
-                               !is_open);
+                               true);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_file_open unsuccessful\n");
         pthread_mutex_unlock(&(ctx->mutex));
@@ -475,7 +450,6 @@ int mediafirefs_create(const char *path, mode_t mode,
     pthread_mutex_unlock(&(ctx->mutex));
 
     mediafirefs_flush(path, file_info);
-//    openfile->is_local = false;
 
     return 0;
 }
@@ -572,14 +546,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
                 openfile->path);
         exit(1);
     }
-/*
-    if (stringv_mem(ctx->sv_writefiles, openfile->path) != 0) {
-        fprintf(stderr,
-                "FATAL: writefiles entry %s was found more than once\n",
-                openfile->path);
-        exit(1);
-    }
-*/
+
     close(openfile->fd);
 
     free(openfile->path);
