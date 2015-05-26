@@ -30,11 +30,6 @@ bounty available for the item.
  - add an option to only call device/get_status in configurable intervals
  - add an option to make file cache size configurable
  - write man pages
- - implement truncate (problem: zero byte files are not allowed at the remote)
- - move uploading of files from release() to flush() because the return
-   value of release is ignored and because the calling close() returns
-   before release() finishes (problem: zero byte files are not allowed at
-   the remote)
  - create a Debian package
  - call folder/get_content in a loop until more_chunks=no because it currently
    stops at 1000 (max value for chunk_size param)
