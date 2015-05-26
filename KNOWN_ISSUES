@@ -11,10 +11,13 @@ GENERAL
 
 MEDIAFIRE FUSE
 
-* Lots of editor tools will not work until the MediaFire API is updated
-  to support zero-byte files.  Tools like LibreOffice will report strange
-  errors when trying to save files back to the FUSE drive.
-
+* Some tools like LibreOffic will create hidden lock files while they are
+  being edited.  These lock files will get uploaded when they are created.
+  In the event that they don't get deleted from the cloud after they are
+  no longer used, LibreOffic will report that the file is already in use
+  by an unknown user.  To rectify this problem, simply delete the files
+  from the folder by navigating to them in your account with a web
+  browser.
 
 
 
