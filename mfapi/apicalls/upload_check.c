@@ -66,8 +66,8 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename,
             return -1;
         }
 
-        if(size != 0) {
-
+        if(size != 0 || 1) {
+	    /* will always execute */
             api_call = mfconn_create_signed_get(conn, 0,
                                                 "upload/check.php",
                                                 "?response_format=json"
@@ -78,7 +78,7 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename,
                                                 filename_urlenc,
                                                 size, hash, folder_key);
         } else {
-
+	    /* will not execute */
             api_call = mfconn_create_signed_get(conn, 0,
                                                 "upload/check.php",
                                                 "?response_format=json"

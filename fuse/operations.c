@@ -105,10 +105,13 @@ struct mediafirefs_openfile {
     bool            is_readonly;
     // whether or not to do a new file upload when closing
     bool            is_local;
+    // is true if file has been updated since last flush
+    bool            is_flushed;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
 {
+    printf("FUNCTION: getattr. path: %s\n", path);
     /*
      * since getattr is called before every other call (except for getattr,
      * read and write) wee only call folder_tree_update in the getattr call
@@ -150,6 +153,7 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
 int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
                         off_t offset, struct fuse_file_info *info)
 {
+    printf("FUNCTION: readdir. path: %s\n", path);
     (void)offset;
     (void)info;
     struct mediafirefs_context_private *ctx;
@@ -166,6 +170,7 @@ int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
 
 void mediafirefs_destroy(void *user_ptr)
 {
+    printf("FUNCTION: destroy\n");
     FILE           *fd;
     struct mediafirefs_context_private *ctx;
 
@@ -196,6 +201,8 @@ void mediafirefs_destroy(void *user_ptr)
 
 int mediafirefs_mkdir(const char *path, mode_t mode)
 {
+    printf("FUNCTION: mkdir. path: %s\n", path);
+
     (void)mode;
 
     char           *dirname;
@@ -263,6 +270,7 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
 
 int mediafirefs_rmdir(const char *path)
 {
+    printf("FUNCTION: rmdir. path: %s\n", path);
     const char     *key;
     int             retval;
     struct mediafirefs_context_private *ctx;
@@ -304,6 +312,7 @@ int mediafirefs_rmdir(const char *path)
 
 int mediafirefs_unlink(const char *path)
 {
+    printf("FUNCTION: unlink. path: %s\n", path);
     const char     *key;
     int             retval;
     struct mediafirefs_context_private *ctx;
@@ -346,17 +355,12 @@ int mediafirefs_unlink(const char *path)
 /*
  * the following restrictions apply:
  *  1. a file can be opened in read-only mode more than once at a time
- *  2. a file can only be be opened in write-only or read-write mode if it is
- *     not open for writing at the same time
+ *  2. a file can only be be opened in write-only or read-write mode
+ *     more than once at a time.
  *  3. a file that is only local and has not been uploaded yet cannot be read
  *     from
  *  4. a file that has opened in any way will not be updated to its latest
  *     remote revision until all its opened handles are closed
- *
- *  Point 2 is enforced by a lookup in the writefiles string vector. If the
- *  path is in there then it was either just created locally or opened with
- *  write-only or read-write. In both cases it must not be opened for
- *  writing again.
  *
  *  Point 3 is enforced by the lookup in the hashtable failing.
  *
@@ -365,8 +369,8 @@ int mediafirefs_unlink(const char *path)
  */
 int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: open. path: %s\n", path);
     int             fd;
-    bool            is_open;
     struct mediafirefs_openfile *openfile;
     struct mediafirefs_context_private *ctx;
 
@@ -374,32 +378,8 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    /* if file is not opened read-only, check if it was already opened in a
-     * not read-only mode and abort if yes */
-    if ((file_info->flags & O_ACCMODE) != O_RDONLY
-        && stringv_mem(ctx->sv_writefiles, path)) {
-        fprintf(stderr, "file %s was already opened for writing\n", path);
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -EACCES;
-    }
-
-    is_open = false;
-    // check if the file was already opened
-    // check read-only files first
-    if (stringv_mem(ctx->sv_readonlyfiles, path)) {
-        is_open = true;
-    }
-    // check writable files only if the file was
-    //   - not yet found in the read-only files
-    //   - the file is opened in read-only mode (because otherwise the
-    //     writable files were already searched above without failing)
-    if (!is_open && (file_info->flags & O_ACCMODE) == O_RDONLY
-        && stringv_mem(ctx->sv_writefiles, path)) {
-        is_open = true;
-    }
-
     fd = folder_tree_open_file(ctx->tree, ctx->conn, path, file_info->flags,
-                               !is_open);
+                               true);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_file_open unsuccessful\n");
         pthread_mutex_unlock(&(ctx->mutex));
@@ -410,6 +390,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
     openfile->fd = fd;
     openfile->is_local = false;
     openfile->path = strdup(path);
+    openfile->is_flushed = true;
 
     if ((file_info->flags & O_ACCMODE) == O_RDONLY) {
         openfile->is_readonly = true;
@@ -436,6 +417,8 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_create(const char *path, mode_t mode,
                        struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: create. path: %s\n", path);
+
     (void)mode;
 
     int             fd;
@@ -452,12 +435,13 @@ int mediafirefs_create(const char *path, mode_t mode,
         pthread_mutex_unlock(&(ctx->mutex));
         return -EACCES;
     }
-
+    
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
     openfile->is_local = true;
     openfile->is_readonly = false;
     openfile->path = strdup(path);
+    openfile->is_flushed = false;
     file_info->fh = (uintptr_t) openfile;
 
     // add to writefiles
@@ -465,12 +449,16 @@ int mediafirefs_create(const char *path, mode_t mode,
 
     pthread_mutex_unlock(&(ctx->mutex));
 
+    mediafirefs_flush(path, file_info);
+
     return 0;
 }
 
 int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
                      struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: read. path: %s\n", path);
+
     (void)path;
     ssize_t         retval;
     struct mediafirefs_context_private *ctx;
@@ -490,16 +478,20 @@ int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
 int mediafirefs_write(const char *path, const char *buf, size_t size,
                       off_t offset, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: write. path: %s\n", path);
+
     (void)path;
     ssize_t         retval;
     struct mediafirefs_context_private *ctx;
+    struct mediafirefs_openfile *openfile;
 
     ctx = fuse_get_context()->private_data;
     pthread_mutex_lock(&(ctx->mutex));
 
-    retval =
-        pwrite(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
-               buf, size, offset);
+    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
+
+    retval = pwrite(openfile->fd, buf, size, offset);
+    openfile->is_flushed = false;
 
     pthread_mutex_unlock(&(ctx->mutex));
 
@@ -509,35 +501,26 @@ int mediafirefs_write(const char *path, const char *buf, size_t size,
 /*
  * note: the return value of release() is ignored by fuse
  *
- * also, release() is called asynchronously: the close() call will finish
- * before this function returns. Thus, the uploading should be done once flush
- * is called but this becomes tricky because mediafire doesn't like files of
- * zero length and flush() is often called right after creation.
  */
 int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: release. path: %s\n", path);
+
     (void)path;
 
-    FILE           *fh;
-    char           *file_name;
-    char           *dir_name;
-    const char     *folder_key;
-    char           *upload_key;
-    char           *temp1;
-    char           *temp2;
-    int             retval;
     struct mediafirefs_context_private *ctx;
     struct mediafirefs_openfile *openfile;
     struct mfconn_upload_check_result check_result;
-    unsigned char   bhash[SHA256_DIGEST_LENGTH];
-    char           *hash;
-    uint64_t        size;
+
+    /* filesystems should not assume that flush will ever be called.
+     * since we do our uploading in flush, we must make sure flush is called*/
+    mediafirefs_flush(path, file_info);
 
     ctx = fuse_get_context()->private_data;
 
     // zero out check result to prevent spurious results later
     memset(&check_result,0,sizeof(check_result));
-
+    
     pthread_mutex_lock(&(ctx->mutex));
 
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
@@ -563,133 +546,11 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
                 openfile->path);
         exit(1);
     }
-    if (stringv_mem(ctx->sv_writefiles, openfile->path) != 0) {
-        fprintf(stderr,
-                "FATAL: writefiles entry %s was found more than once\n",
-                openfile->path);
-        exit(1);
-    }
-    // if the file only exists locally, an initial upload has to be done
-    if (openfile->is_local) {
-        // pass a copy because dirname and basename may modify their argument
-        temp1 = strdup(openfile->path);
-        file_name = basename(temp1);
-        temp2 = strdup(openfile->path);
-        dir_name = dirname(temp2);
-
-        fh = fdopen(openfile->fd, "r");
-        rewind(fh);
-
-        folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
-
-        retval = calc_sha256(fh, bhash, &size);
-        rewind(fh);
-
-        if (retval != 0) {
-            fprintf(stderr, "failed to calculate hash\n");
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            pthread_mutex_unlock(&(ctx->mutex));
-            return -EACCES;
-        }
-
-        hash = binary2hex(bhash, SHA256_DIGEST_LENGTH);
-
-        retval = mfconn_api_upload_check(ctx->conn, file_name, hash, size,
-                                         folder_key, &check_result);
-
-        if (retval != 0) {
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-            fprintf(stderr, "mfconn_api_upload_check failed\n");
-            fprintf(stderr, "file_name: %s\n",file_name);
-            fprintf(stderr, "hash: %s\n",hash);
-            fprintf(stderr, "size: %jd\n",size);
-            fprintf(stderr, "folder_key: %s\n",folder_key);
-            pthread_mutex_unlock(&(ctx->mutex));
-            return -EACCES;
-        }
-
-        if (check_result.hash_exists) {
-            // hash exists, so use upload/instant
-
-            retval = mfconn_api_upload_instant(ctx->conn, NULL,
-                                               file_name, hash, size,
-                                               folder_key);
-
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-
-            if (retval != 0) {
-                fprintf(stderr, "mfconn_api_upload_instant failed\n");
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -EACCES;
-            }
-        } else {
-            // hash does not exist, so do full upload
-            upload_key = NULL;
-            retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                              fh, file_name, &upload_key);
-
-            fclose(fh);
-            free(temp1);
-            free(temp2);
-            free(openfile->path);
-            free(openfile);
-            free(hash);
-
-            if (retval != 0 || upload_key == NULL) {
-
-                fprintf(stderr, "mfconn_api_upload_simple failed\n");
-                fprintf(stderr, "file_name: %s\n",file_name);
-                fprintf(stderr, "hash: %s\n",hash);
-                fprintf(stderr, "size: %jd\n",size);
-                fprintf(stderr, "folder_key: %s\n",folder_key);
-
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -EACCES;
-            }
-            // poll for completion
-            retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
-            free(upload_key);
-
-            if (retval != 0) {
-                fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
-                pthread_mutex_unlock(&(ctx->mutex));
-                return -1;
-            }
-        }
-
-        folder_tree_update(ctx->tree, ctx->conn, true);
-        pthread_mutex_unlock(&(ctx->mutex));
-        return 0;
-    }
-    // the file was not opened readonly and also existed on the remote
-    // thus, we have to check whether any changes were made and if yes, upload
-    // a patch
 
     close(openfile->fd);
 
-    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
     free(openfile->path);
     free(openfile);
-
-    if (retval != 0) {
-        fprintf(stderr, "folder_tree_upload_patch failed\n");
-        pthread_mutex_unlock(&(ctx->mutex));
-        return -EACCES;
-    }
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 
@@ -700,6 +561,8 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
 int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
 {
+    printf("FUNCTION: readlink. path: %s\n", path);
+
     (void)path;
     (void)buf;
     (void)bufsize;
@@ -718,6 +581,8 @@ int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
 
 int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
 {
+    printf("FUNCTION: mknod. path: %s\n", path);
+
     (void)path;
     (void)mode;
     (void)dev;
@@ -736,6 +601,8 @@ int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
 
 int mediafirefs_symlink(const char *target, const char *linkpath)
 {
+    printf("FUNCTION: symlink. target: %s, linkpath: %s\n", target, linkpath);
+
     (void)target;
     (void)linkpath;
     struct mediafirefs_context_private *ctx;
@@ -753,6 +620,8 @@ int mediafirefs_symlink(const char *target, const char *linkpath)
 
 int mediafirefs_rename(const char *oldpath, const char *newpath)
 {
+    printf("FUNCTION: rename. oldpath: %s, newpath %s\n", oldpath, newpath);
+
     char           *temp1;
     char           *temp2;
     char           *olddir;
@@ -822,7 +691,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
-            retval = mfconn_api_file_update(ctx->conn, key, newname, NULL);
+            retval = mfconn_api_file_update(ctx->conn, key, newname, NULL, false);
         } else {
             retval = mfconn_api_folder_update(ctx->conn, key, newname, NULL);
         }
@@ -851,6 +720,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
 int mediafirefs_link(const char *target, const char *linkpath)
 {
+    printf("FUNCTION: link. target: %s, linkpath %s\n", target, linkpath);
+
     (void)target;
     (void)linkpath;
     struct mediafirefs_context_private *ctx;
@@ -868,6 +739,7 @@ int mediafirefs_link(const char *target, const char *linkpath)
 
 int mediafirefs_chmod(const char *path, mode_t mode)
 {
+    printf("FUNCTION: chmod. path: %s\n", path);
     (void)path;
     (void)mode;
     struct mediafirefs_context_private *ctx;
@@ -885,6 +757,8 @@ int mediafirefs_chmod(const char *path, mode_t mode)
 
 int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 {
+    printf("FUNCTION: chown. path: %s\n", path);
+
     (void)path;
     (void)uid;
     (void)gid;
@@ -903,24 +777,38 @@ int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 
 int mediafirefs_truncate(const char *path, off_t length)
 {
-    // FIXME: implement this
-    (void)path;
-    (void)length;
+    printf("FUNCTION: truncate. path: %s, length: %zd\n", path, length);
+
+    int             retval;
+
     struct mediafirefs_context_private *ctx;
 
     ctx = fuse_get_context()->private_data;
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    fprintf(stderr, "truncate not implemented\n");
+    if (length != 0) {
+	fprintf(stderr, "Truncate is not defined for length other than 0\n");
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -EINVAL;
+    }
+
+    retval = folder_tree_truncate_file(ctx->tree, ctx->conn, path);
+    
+    if (retval == -1) {
+	pthread_mutex_unlock(&(ctx->mutex));
+	return -ENOENT;
+    }
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOSYS;
+    return 0;
 }
 
 int mediafirefs_statfs(const char *path, struct statvfs *buf)
 {
+    printf("FUNCTION: statfs. path: %s\n", path);
+
     // TODO:    add mfuser to ctx and store it accross the system.
     //          instantiating it every time on a per-instance is not ideal.
 
@@ -985,16 +873,155 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 {
-    (void)path;
-    (void)file_info;
+    printf("FUNCTION: flush. path: %s\n", path);
+
+    FILE           *fh;
+    char           *file_name;
+    char           *dir_name;
+    const char     *folder_key;
+    char           *upload_key;
+    char           *temp1;
+    char           *temp2;
+    int             retval;
     struct mediafirefs_context_private *ctx;
+    struct mediafirefs_openfile *openfile;
+    struct mfconn_upload_check_result check_result;
+    unsigned char   bhash[SHA256_DIGEST_LENGTH];
+    char           *hash;
+    uint64_t        size;
+
+    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
+
+    if (openfile->is_flushed) {
+	return 0;
+    }
 
     ctx = fuse_get_context()->private_data;
 
+    // zero out check result to prevent spurious results later
+    memset(&check_result,0,sizeof(check_result));
+    
     pthread_mutex_lock(&(ctx->mutex));
 
-    fprintf(stderr, "flush is a no-op\n");
 
+    if (openfile->is_readonly) {
+	/* nothing to do here */
+	pthread_mutex_unlock(&(ctx->mutex));
+	return 0;
+    }
+        // if the file only exists locally, an initial upload has to be done
+    if (openfile->is_local) {
+        // pass a copy because dirname and basename may modify their argument
+        temp1 = strdup(openfile->path);
+        file_name = basename(temp1);
+        temp2 = strdup(openfile->path);
+        dir_name = dirname(temp2);
+
+        fh = fdopen(openfile->fd, "r");
+        rewind(fh);
+
+        folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
+
+	size = -1;
+        retval = calc_sha256(fh, bhash, &size);
+        rewind(fh);
+
+        if (retval != 0) {
+            fprintf(stderr, "failed to calculate hash\n");
+            free(temp1);
+            free(temp2);
+            pthread_mutex_unlock(&(ctx->mutex));
+            return -EACCES;
+        }
+
+        hash = binary2hex(bhash, SHA256_DIGEST_LENGTH);
+
+        retval = mfconn_api_upload_check(ctx->conn, file_name, hash, size,
+                                         folder_key, &check_result);
+
+        if (retval != 0) {
+            free(temp1);
+            free(temp2);
+            free(hash);
+            fprintf(stderr, "mfconn_api_upload_check failed\n");
+            fprintf(stderr, "file_name: %s\n",file_name);
+            fprintf(stderr, "hash: %s\n",hash);
+            fprintf(stderr, "size: %jd\n",size);
+            fprintf(stderr, "folder_key: %s\n",folder_key);
+            pthread_mutex_unlock(&(ctx->mutex));
+            return -EACCES;
+        }
+
+        if (check_result.hash_exists) {
+            // hash exists, so use upload/instant
+
+            retval = mfconn_api_upload_instant(ctx->conn, NULL,
+                                               file_name, hash, size,
+                                               folder_key);
+
+            free(temp1);
+            free(temp2);
+            free(hash);
+
+            if (retval != 0) {
+                fprintf(stderr, "mfconn_api_upload_instant failed\n");
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -EACCES;
+            }
+        } else {
+            // hash does not exist, so do full upload
+            upload_key = NULL;
+            retval = mfconn_api_upload_simple(ctx->conn, folder_key,
+                                              fh, file_name, false, &upload_key);
+
+            free(temp1);
+            free(temp2);
+            free(hash);
+
+            if (retval != 0 || upload_key == NULL) {
+
+                fprintf(stderr, "mfconn_api_upload_simple failed\n");
+                fprintf(stderr, "file_name: %s\n",file_name);
+                fprintf(stderr, "hash: %s\n",hash);
+                fprintf(stderr, "size: %jd\n",size);
+                fprintf(stderr, "folder_key: %s\n",folder_key);
+
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -EACCES;
+            }
+            // poll for completion
+            retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
+            free(upload_key);
+
+            if (retval != 0) {
+                fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -1;
+            }
+        }
+
+        folder_tree_update(ctx->tree, ctx->conn, true);
+	openfile->is_flushed = true;
+        pthread_mutex_unlock(&(ctx->mutex));
+        return 0;
+    }
+
+    // the file was not opened readonly and also existed on the remote
+    // thus, we have to check whether any changes were made and if yes, upload
+    // a patch
+
+    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
+
+    if (retval != 0) {
+	    fprintf(stderr, "folder_tree_upload_patch failed\n");
+	    pthread_mutex_unlock(&(ctx->mutex));
+	    return -EACCES;
+    }
+
+
+    folder_tree_update(ctx->tree, ctx->conn, true);
+
+    openfile->is_flushed = true;
     pthread_mutex_unlock(&(ctx->mutex));
 
     return 0;
@@ -1003,6 +1030,8 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_fsync(const char *path, int datasync,
                       struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: fsync. path: %s\n", path);
+
     (void)path;
     (void)datasync;
     (void)file_info;
@@ -1022,6 +1051,8 @@ int mediafirefs_fsync(const char *path, int datasync,
 int mediafirefs_setxattr(const char *path, const char *name,
                          const char *value, size_t size, int flags)
 {
+    printf("FUNCTION: setxattr. path: %s\n", path);
+
     (void)path;
     (void)name;
     (void)value;
@@ -1043,6 +1074,8 @@ int mediafirefs_setxattr(const char *path, const char *name,
 int mediafirefs_getxattr(const char *path, const char *name, char *value,
                          size_t size)
 {
+    printf("FUNCTION: getxattr. path: %s\n", path);
+
     (void)path;
     (void)name;
     (void)value;
@@ -1062,6 +1095,8 @@ int mediafirefs_getxattr(const char *path, const char *name, char *value,
 
 int mediafirefs_listxattr(const char *path, char *list, size_t size)
 {
+    printf("FUNCTION: listxattr. path: %s\n", path);
+
     (void)path;
     (void)list;
     (void)size;
@@ -1080,6 +1115,8 @@ int mediafirefs_listxattr(const char *path, char *list, size_t size)
 
 int mediafirefs_removexattr(const char *path, const char *list)
 {
+    printf("FUNCTION: removexattr. path: %s\n", path);
+
     (void)path;
     (void)list;
     struct mediafirefs_context_private *ctx;
@@ -1097,6 +1134,8 @@ int mediafirefs_removexattr(const char *path, const char *list)
 
 int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: opendir. path: %s\n", path);
+
     (void)path;
     (void)file_info;
     struct mediafirefs_context_private *ctx;
@@ -1114,6 +1153,8 @@ int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
 
 int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: releasedir. path: %s\n", path);
+
     (void)path;
     (void)file_info;
     struct mediafirefs_context_private *ctx;
@@ -1132,6 +1173,8 @@ int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
 int mediafirefs_fsyncdir(const char *path, int datasync,
                          struct fuse_file_info *file_info)
 {
+    printf("FUNCTION: fsyncdir. path: %s\n", path);
+
     (void)path;
     (void)datasync;
     (void)file_info;
@@ -1158,6 +1201,8 @@ void* mediafirefs_init(struct fuse_conn_info *conn)
 
 int mediafirefs_access(const char *path, int mode)
 {
+    printf("FUNCTION: access. path: %s\n", path);
+
     (void)path;
     (void)mode;
     struct mediafirefs_context_private *ctx;
@@ -1175,6 +1220,8 @@ int mediafirefs_access(const char *path, int mode)
 
 int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 {
+    printf("FUNCTION: utimens. path: %s\n", path);
+
     time_t          since_epoch;
     struct tm       local_time;
     static int      b_tzset = 0;        // has tzset() been called
@@ -1222,7 +1269,7 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
     fprintf(stderr, "utimens file set: %s\n", print_time);
 
     if (is_file) {
-        retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time);
+        retval = mfconn_api_file_update(ctx->conn, key, NULL, print_time, false);
     } else {
         retval = mfconn_api_folder_update(ctx->conn, key, NULL, print_time);
     }

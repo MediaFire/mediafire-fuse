@@ -26,7 +26,7 @@
 #include "../apicalls.h"        // IWYU pragma: keep
 
 int mfconn_api_file_update(mfconn * conn, const char *quickkey,
-                           const char *filename, const char *mtime)
+                           const char *filename, const char *mtime, bool truncate)
 {
     const char     *api_call;
     int             retval;
@@ -43,7 +43,7 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
     if (strlen(quickkey) != 15)
         return -1;
 
-    if (filename == NULL && mtime == NULL)
+    if (filename == NULL && mtime == NULL && truncate == false)
         return -1;
 
     if (filename != NULL) {
@@ -86,6 +86,15 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
                                                 "&response_format=json",
                                                 quickkey, filename_urlenc);
         }
+
+	if (truncate) {
+            api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
+                                                "?quick_key=%s"
+						"&truncate=%s"
+                                                "&response_format=json",
+                                                quickkey,
+						"yes");
+	}
 
         if (filename_urlenc != NULL)
             free(filename_urlenc);

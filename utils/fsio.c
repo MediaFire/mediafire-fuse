@@ -135,7 +135,7 @@ fsio_file_read(fsio_t *fsio,ssize_t *bytes)
     // zero out our counters
     _fsio_reset_counters(fsio);
 
-    while(fsio->bytes_read < (size_t)*bytes)
+    while(fsio->bytes_read <= (size_t)*bytes)
     {
         bytes_read = _fsio_read_block(fsio);
 
@@ -209,16 +209,19 @@ fsio_file_copy(fsio_t *fsio,ssize_t *bytes)
 
         // were done
         if(bytes_read == 0) break;
-
+	fsio->data_sz = bytes_read;
         bytes_written = _fsio_write_blocks(fsio);
 
         if(bytes_written != bytes_read) break;
+
 
         bytes_total += bytes_written;
     }
 
     if(bytes_total < *bytes)
     {
+	fprintf(stderr, "ERROR: bytes read: %zd, bytes written: %zd\n",
+		bytes_read, bytes_written);
         *bytes = bytes_total;
         return -1;
     }

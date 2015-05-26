@@ -35,7 +35,7 @@
 #define MFAPI_MAX_LEN_KEY 15
 #define MFAPI_MAX_LEN_NAME 255
 
-#define MFAPI_VERSION "1.2"
+#define MFAPI_VERSION "1.4"
 
 enum mfconn_device_change_type {
     MFCONN_DEVICE_CHANGE_DELETED_FOLDER,
@@ -94,7 +94,7 @@ int             mfconn_api_file_move(mfconn * conn, const char *quickkey,
 
 int             mfconn_api_file_update(mfconn * conn, const char *quickkey,
                                        const char *filename,
-                                       const char *mtime);
+                                       const char *mtime, bool truncate);
 
 int             mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          const char *name);
@@ -162,6 +162,7 @@ int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
 
 int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                          FILE * fh, const char *file_name,
+					 bool replace,
                                          char **upload_key);
 
 int             mfconn_api_upload_patch(mfconn * conn, const char *quickkey,

@@ -78,7 +78,8 @@ bool            folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
 int             folder_tree_open_file(folder_tree * tree, mfconn * conn,
                                       const char *path, mode_t mode,
                                       bool update);
-
+int             folder_tree_truncate_file(folder_tree * tree, mfconn * conn,
+					  const char *path);
 int             folder_tree_tmp_open(folder_tree * tree);
 
 int             folder_tree_upload_patch(folder_tree * tree, mfconn * conn,

@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "../utils/hash.h"
 #include "../utils/xdelta3.h"
@@ -40,6 +41,20 @@
 #ifndef TRUE
 #define TRUE true
 #endif
+
+static int      get_file_size(const char *filepath)
+{
+    struct stat st;
+    int     retval;
+
+    retval = stat(filepath, &st);
+    if (retval == -1) {
+	perror("fstat");
+	return -1;
+    }
+
+    return st.st_size;
+}
 
 static int      filecache_update_file(const char *filecache_path,
                                       mfconn * conn, const char *quickkey,
@@ -60,7 +75,8 @@ static int      filecache_patch_file(const char *filecache_path,
                                      uint64_t target_revision);
 
 int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
-                           const char *filecache_path, mfconn * conn)
+                           const char *filecache_path, mfconn * conn,
+			   const char *filename, const char *folder_key)
 {
     FILE           *source_fh;
     FILE           *target_fh;
@@ -74,6 +90,8 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     char           *patch_file;
     int             retval;
     char           *upload_key;
+    int             cache_filesize;
+
 
     cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
                               local_revision);
@@ -84,6 +102,8 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
         free(cachefile);
         return -1;
     }
+
+    cache_filesize = get_file_size(cachefile);
     free(cachefile);
 
     newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
@@ -109,6 +129,7 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
 
     source_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
 
+    target_size = -1;
     retval = calc_sha256(target_fh, hash, &target_size);
 
     if (retval != 0) {
@@ -141,13 +162,23 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     rewind(source_fh);
     rewind(target_fh);
     retval = xdelta3_diff(source_fh, target_fh, patchfile_fh);
-    fclose(source_fh);
-    fclose(target_fh);
-    fclose(patchfile_fh);
+    fclose(patchfile_fh);    
 
     upload_key = NULL;
-    retval = mfconn_api_upload_patch(conn, quickkey, source_hash, target_hash,
-                                     target_size, patch_file, &upload_key);
+    if (cache_filesize > 0) {
+	fprintf(stderr, "uploading patch\n");
+	retval = mfconn_api_upload_patch(conn, quickkey, source_hash,
+					 target_hash, target_size,
+					 patch_file, &upload_key);
+    } else {
+	fprintf(stderr, "updating file content\n");
+	retval = mfconn_api_upload_simple(conn, folder_key, target_fh,
+					  filename, true, &upload_key);
+    }
+
+    fclose(source_fh);
+    fclose(target_fh);
+
 
     if (retval != 0 || upload_key == NULL) {
         fprintf(stderr, "mfconn_api_upload_patch failed\n");
@@ -161,6 +192,51 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
         fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
         return -1;
     }
+
+    return 0;
+}
+
+
+int filecache_truncate_file(const char *quickkey, const char *key,
+			    uint64_t local_revision,
+			    uint64_t remote_revision,
+			    const char *filecache_path, mfconn * conn)
+{
+    char           *filepath;
+    int             retval;
+    int             fd;
+
+    /* truncate file on remote */
+    retval = mfconn_api_file_update(conn, key, NULL, NULL, true);
+    if (retval == -1) {
+	fprintf(stderr, "file update failed\n");
+	return -1;
+    }
+
+    /* truncate file on local */
+    filepath = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+			      local_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+			      remote_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+			      local_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
+
+    filepath = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+			      remote_revision);
+    fd = open(filepath, O_TRUNC | O_WRONLY);
+    free(filepath);
+    close(fd);
 
     return 0;
 }
