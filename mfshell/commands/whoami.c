@@ -20,13 +20,13 @@
 #include <stdio.h>
 
 #include "../../mfapi/apicalls.h"
-#include "../../mfapi/user.h"
+#include "../../mfapi/account.h"
 #include "../mfshell.h"
 #include "../commands.h"        // IWYU pragma: keep
 
 int mfshell_cmd_whoami(mfshell * mfshell, int argc, char *const argv[])
 {
-    mfuser_t       *user;
+    account_t       *account;
 
     (void)argv;
     int             retval;
@@ -46,12 +46,12 @@ int mfshell_cmd_whoami(mfshell * mfshell, int argc, char *const argv[])
         return -1;
     }
 
-    user = user_alloc();
+    account = account_alloc();
 
-    retval = mfconn_api_user_get_info(mfshell->conn, user);
+    retval = mfconn_api_user_get_info(mfshell->conn, account);
 
-    if (user != NULL)
-        user_free(user);
+    if (account != NULL)
+        account_free(account);
 
     return retval;
 }
