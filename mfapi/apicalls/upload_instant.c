@@ -64,6 +64,7 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
                                                 "&filename=%s"
                                                 "&size=%" PRIu64
                                                 "&hash=%s"
+                                                "&action_on_duplicate=replace"
                                                 "&response_format=json",
                                                 folder_key, filename_urlenc,
                                                 size, hash);

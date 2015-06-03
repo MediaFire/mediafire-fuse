@@ -814,14 +814,13 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
     printf("FUNCTION: statfs. path: %s\n", path);
 
     // declare this static to cache results across repeated calls
-    static char     space_total[128];
-    static char     space_used[128];
+    static char         space_total[128];
+    static char         space_used[128];
+    static uintmax_t    bytes_total = 0;
+    static uintmax_t    bytes_used = 0;
+    static uintmax_t    bytes_free = 0;
 
-    unsigned int    state_flags = 0;
-
-    uintmax_t       bytes_total = 0;
-    uintmax_t       bytes_used = 0;
-    uintmax_t       bytes_free = 0;
+    unsigned int        state_flags = 0;
 
     (void)path;
     (void)buf;
@@ -829,9 +828,6 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
     ctx = fuse_get_context()->private_data;
 
-    // init buffers before we enter critical region (primitive guard)
-    memset(space_total, 0, sizeof(space_total));
-    memset(space_used, 0, sizeof(space_used));
 
     pthread_mutex_lock(&(ctx->mutex));
 
@@ -846,24 +842,28 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
     if(state_flags & ACCOUNT_FLAG_DIRTY_SIZE)
     {
+        memset(space_total, 0, sizeof(space_total));
+        memset(space_used, 0, sizeof(space_used));
+
         // TODO:  it's bad practice for the API to modify the object directly
         mfconn_api_user_get_info(ctx->conn, ctx->account);
         account_del_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE); 
 
         account_get_space_total(ctx->account, space_total, 128);
         account_get_space_used(ctx->account, space_used, 128);
+
+        bytes_total = atoll(space_total);
+        bytes_used = atoll(space_used);
+
+        bytes_free = bytes_total - bytes_used;
     }
 
-    bytes_total = atoll(space_total);
-    bytes_used = atoll(space_used);
 
     if (bytes_total == 0) {
 
         pthread_mutex_unlock(&(ctx->mutex));
         return -ENOSYS;         // returning -ENOENT might make more sense
     }
-
-    bytes_free = bytes_total - bytes_used;
 
     fprintf(stderr, "account size: %ju bytes\n", bytes_total);
     fprintf(stderr, "account used: %ju bytes\n", bytes_used);
@@ -984,7 +984,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
             // hash does not exist, so do full upload
             upload_key = NULL;
             retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                              fh, file_name, false, &upload_key);
+                                              fh, file_name, true, &upload_key);
 
             free(temp1);
             free(temp2);
