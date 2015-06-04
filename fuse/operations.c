@@ -691,8 +691,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
     // check if the name changed
     temp1 = strdup(oldpath);
     temp2 = strdup(newpath);
-    oldname = basename(temp1);
-    newname = basename(temp2);
+    oldname = strdup(basename(temp1));
+    newname = strdup(basename(temp2));
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
@@ -714,6 +714,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             }
             free(temp1);
             free(temp2);
+	    free(oldname);
+	    free(newname);
             pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
@@ -721,6 +723,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     free(temp1);
     free(temp2);
+    free(oldname);
+    free(newname);
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 
