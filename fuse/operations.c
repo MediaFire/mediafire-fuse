@@ -636,6 +636,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
     struct mediafirefs_context_private *ctx;
     bool            is_file;
     const char     *key;
+    const char     *key1;
     const char     *folderkey;
 
     ctx = fuse_get_context()->private_data;
@@ -695,6 +696,12 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
+	    key1 = folder_tree_path_get_key(ctx->tree, ctx->conn,
+					    newpath);
+	    if (key1) {
+		/* delete existing destination file */
+		mfconn_api_file_delete(ctx->conn, key1);
+	    }
             retval = mfconn_api_file_update(ctx->conn, key, newname, NULL, false);
         } else {
             retval = mfconn_api_folder_update(ctx->conn, key, newname, NULL);
