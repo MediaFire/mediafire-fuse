@@ -40,7 +40,7 @@
 #include <openssl/sha.h>
 #include <sys/statvfs.h>
 
-#include "../mfapi/user.h"
+#include "../mfapi/account.h"
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
 #include "../utils/stringv.h"
@@ -343,6 +343,10 @@ int mediafirefs_unlink(const char *path)
         // FIXME: find better errno in this case
         return -EAGAIN;
     }
+    else
+    {
+        account_add_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE);
+    }
 
     /* retrieve remote changes to not get out of sync */
     folder_tree_update(ctx->tree, ctx->conn, true);
@@ -632,6 +636,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
     struct mediafirefs_context_private *ctx;
     bool            is_file;
     const char     *key;
+    const char     *key1;
     const char     *folderkey;
 
     ctx = fuse_get_context()->private_data;
@@ -649,8 +654,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
     // check if the directory changed
     temp1 = strdup(oldpath);
     temp2 = strdup(newpath);
-    olddir = dirname(temp1);
-    newdir = dirname(temp2);
+    olddir = strdup(dirname(temp1));
+    newdir = strdup(dirname(temp2));
 
     if (strcmp(olddir, newdir) != 0) {
         folderkey = folder_tree_path_get_key(ctx->tree, ctx->conn, newdir);
@@ -658,6 +663,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             fprintf(stderr, "key is NULL\n");
             free(temp1);
             free(temp2);
+	    free(olddir);
+	    free(newdir);
             pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
@@ -675,6 +682,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             }
             free(temp1);
             free(temp2);
+	    free(olddir);
+	    free(newdir);
             pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
@@ -682,15 +691,24 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     free(temp1);
     free(temp2);
+    free(olddir);
+    free(newdir);
+
 
     // check if the name changed
     temp1 = strdup(oldpath);
     temp2 = strdup(newpath);
-    oldname = basename(temp1);
-    newname = basename(temp2);
+    oldname = strdup(basename(temp1));
+    newname = strdup(basename(temp2));
 
     if (strcmp(oldname, newname) != 0) {
         if (is_file) {
+	    key1 = folder_tree_path_get_key(ctx->tree, ctx->conn,
+					    newpath);
+	    if (key1) {
+		/* delete existing destination file */
+		mfconn_api_file_delete(ctx->conn, key1);
+	    }
             retval = mfconn_api_file_update(ctx->conn, key, newname, NULL, false);
         } else {
             retval = mfconn_api_folder_update(ctx->conn, key, newname, NULL);
@@ -703,6 +721,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             }
             free(temp1);
             free(temp2);
+	    free(oldname);
+	    free(newname);
             pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
@@ -710,6 +730,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     free(temp1);
     free(temp2);
+    free(oldname);
+    free(newname);
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 
@@ -809,17 +831,14 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 {
     printf("FUNCTION: statfs. path: %s\n", path);
 
-    // TODO:    add mfuser to ctx and store it accross the system.
-    //          instantiating it every time on a per-instance is not ideal.
+    // declare this static to cache results across repeated calls
+    static char         space_total[128];
+    static char         space_used[128];
+    static uintmax_t    bytes_total = 0;
+    static uintmax_t    bytes_used = 0;
+    static uintmax_t    bytes_free = 0;
 
-    mfuser_t       *user = NULL;
-
-    char            space_total[128];
-    char            space_used[128];
-
-    uintmax_t       bytes_total = 0;
-    uintmax_t       bytes_used = 0;
-    uintmax_t       bytes_free = 0;
+    unsigned int        state_flags = 0;
 
     (void)path;
     (void)buf;
@@ -827,31 +846,42 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
     ctx = fuse_get_context()->private_data;
 
-    // init buffers before we enter critical region (primitive guard)
-    memset(space_total, 0, sizeof(space_total));
-    memset(space_used, 0, sizeof(space_used));
 
     pthread_mutex_lock(&(ctx->mutex));
 
-    user = user_alloc();
-    mfconn_api_user_get_info(ctx->conn, user);
+    // instantiate an account object and set the dirty flag on the size
+    if(ctx->account == NULL)
+    {
+        ctx->account = account_alloc();
+        account_add_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE);
+    }
 
-    user_get_space_total(user, space_total, 128);
-    user_get_space_used(user, space_used, 128);
+    state_flags = account_get_state_flags(ctx->account);
 
-    if (user != NULL)
-        user_free(user);
+    if(state_flags & ACCOUNT_FLAG_DIRTY_SIZE)
+    {
+        memset(space_total, 0, sizeof(space_total));
+        memset(space_used, 0, sizeof(space_used));
 
-    bytes_total = atoll(space_total);
-    bytes_used = atoll(space_used);
+        // TODO:  it's bad practice for the API to modify the object directly
+        mfconn_api_user_get_info(ctx->conn, ctx->account);
+        account_del_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE); 
+
+        account_get_space_total(ctx->account, space_total, 128);
+        account_get_space_used(ctx->account, space_used, 128);
+
+        bytes_total = atoll(space_total);
+        bytes_used = atoll(space_used);
+
+        bytes_free = bytes_total - bytes_used;
+    }
+
 
     if (bytes_total == 0) {
 
         pthread_mutex_unlock(&(ctx->mutex));
         return -ENOSYS;         // returning -ENOENT might make more sense
     }
-
-    bytes_free = bytes_total - bytes_used;
 
     fprintf(stderr, "account size: %ju bytes\n", bytes_total);
     fprintf(stderr, "account used: %ju bytes\n", bytes_used);
@@ -900,7 +930,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 
     // zero out check result to prevent spurious results later
     memset(&check_result,0,sizeof(check_result));
-    
+
     pthread_mutex_lock(&(ctx->mutex));
 
 
@@ -922,7 +952,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 
         folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
 
-	size = -1;
+	    size = -1;
         retval = calc_sha256(fh, bhash, &size);
         rewind(fh);
 
@@ -955,7 +985,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
         if (check_result.hash_exists) {
             // hash exists, so use upload/instant
 
-            retval = mfconn_api_upload_instant(ctx->conn, NULL,
+            retval = mfconn_api_upload_instant(ctx->conn,
                                                file_name, hash, size,
                                                folder_key);
 
@@ -972,7 +1002,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
             // hash does not exist, so do full upload
             upload_key = NULL;
             retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                              fh, file_name, false, &upload_key);
+                                              fh, file_name, true, &upload_key);
 
             free(temp1);
             free(temp2);
@@ -998,10 +1028,14 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
                 pthread_mutex_unlock(&(ctx->mutex));
                 return -1;
             }
+            else
+            {
+                account_add_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE);
+            }
         }
 
         folder_tree_update(ctx->tree, ctx->conn, true);
-	openfile->is_flushed = true;
+	    openfile->is_flushed = true;
         pthread_mutex_unlock(&(ctx->mutex));
         return 0;
     }
@@ -1016,6 +1050,10 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 	    fprintf(stderr, "folder_tree_upload_patch failed\n");
 	    pthread_mutex_unlock(&(ctx->mutex));
 	    return -EACCES;
+    }
+    else
+    {
+        account_add_state_flags(ctx->account, ACCOUNT_FLAG_DIRTY_SIZE);
     }
 
 

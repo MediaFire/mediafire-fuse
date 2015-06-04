@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "user.h"
+#include "account.h"
 #include "file.h"
 #include "folder.h"
 #include "patch.h"
@@ -115,7 +115,7 @@ int             mfconn_api_folder_update(mfconn * conn, const char *folder_key,
                                          const char *foldername,
                                          const char *mtime);
 
-int             mfconn_api_user_get_info(mfconn * conn, mfuser_t * user);
+int             mfconn_api_user_get_info(mfconn * conn, account_t * user);
 
 int             mfconn_api_user_get_session_token(mfconn * conn,
                                                   const char *server,
@@ -155,7 +155,7 @@ int             mfconn_api_upload_check(mfconn * conn, const char *filename,
                                         struct mfconn_upload_check_result
                                         *result);
 
-int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
+int             mfconn_api_upload_instant(mfconn * conn,
                                           const char *filename,
                                           const char *hash, uint64_t size,
                                           const char *folder_key);

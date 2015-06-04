@@ -25,7 +25,7 @@
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
-int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
+int mfconn_api_upload_instant(mfconn * conn, 
                               const char *filename, const char *hash,
                               uint64_t size, const char *folder_key)
 {
@@ -44,15 +44,7 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
     }
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
-        if (quick_key != NULL && quick_key[0] != '\0') {
-            // update an existing file
-            api_call = mfconn_create_signed_get(conn, 0, "upload/instant.php",
-                                                "?quick_key=%s"
-                                                "&size=%" PRIu64
-                                                "&hash=%s"
-                                                "&response_format=json",
-                                                quick_key, size, hash);
-        } else if (filename != NULL && filename[0] != '\0' && folder_key != 0) {
+	if (filename != NULL && filename[0] != '\0' && folder_key != 0) {
             // upload a new file
             filename_urlenc = urlencode(filename);
             if (filename_urlenc == NULL) {
@@ -64,6 +56,7 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
                                                 "&filename=%s"
                                                 "&size=%" PRIu64
                                                 "&hash=%s"
+                                                "&action_on_duplicate=replace"
                                                 "&response_format=json",
                                                 folder_key, filename_urlenc,
                                                 size, hash);

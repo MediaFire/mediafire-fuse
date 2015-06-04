@@ -26,31 +26,35 @@
 #include <time.h>
 
 #include "../mfapi/mfconn.h"
-#include "hashtbl.h"
+#include "../mfapi/account.h"
 #include "../utils/stringv.h"
+
+#include "hashtbl.h"
 
 struct fuse_conn_info;
 struct fuse_file_info;
 struct stat;
 struct statvfs;
 
-struct mediafirefs_context_private {
-    mfconn         *conn;
-    folder_tree    *tree;
-    time_t          last_status_check;
-    time_t          interval_status_check;
-    pthread_mutex_t mutex;
-    char           *configfile;
-    char           *dircache;
-    char           *filecache;
+struct mediafirefs_context_private
+{
+    mfconn              *conn;
+    folder_tree         *tree;
+    account_t           *account;
+    time_t              last_status_check;
+    time_t              interval_status_check;
+    pthread_mutex_t     mutex;
+    char                *configfile;
+    char                *dircache;
+    char                *filecache;
     /* stores:
      *  - all currently open temporary files which are to be uploaded when
      *    they are closed.
      *  - all files that are opened for writing
      */
-    stringv        *sv_writefiles;
+    stringv             *sv_writefiles;
     /* stores all files that have been opened for reading only */
-    stringv        *sv_readonlyfiles;
+    stringv             *sv_readonlyfiles;
 };
 
 int             mediafirefs_getattr(const char *path, struct stat *stbuf);
