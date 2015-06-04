@@ -967,7 +967,7 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
         if (check_result.hash_exists) {
             // hash exists, so use upload/instant
 
-            retval = mfconn_api_upload_instant(ctx->conn, NULL,
+            retval = mfconn_api_upload_instant(ctx->conn,
                                                file_name, hash, size,
                                                folder_key);
 

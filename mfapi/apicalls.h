@@ -155,7 +155,7 @@ int             mfconn_api_upload_check(mfconn * conn, const char *filename,
                                         struct mfconn_upload_check_result
                                         *result);
 
-int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
+int             mfconn_api_upload_instant(mfconn * conn,
                                           const char *filename,
                                           const char *hash, uint64_t size,
                                           const char *folder_key);
