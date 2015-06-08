@@ -1,8 +1,7 @@
 News
 ====
 
-Update to master on June 4, 2015.  
-Details [Here](https://github.com/MediaFire/mediafire-fuse/blob/master/NEWS.md)
+Significant Update to master on June 4, 2015.  Check [Here](https://github.com/MediaFire/mediafire-fuse/blob/master/NEWS.md) for details.
 
 
 About
