@@ -40,9 +40,9 @@
 //#include <openssl/sha.h>
 //#include <sys/statvfs.h>
 
-#ifdef __linux
-#include <bits/fcntl-linux.h>
-#endif
+//#ifdef __linux
+//#include <bits/fcntl-linux.h>
+//#endif
 
 #include <fuse/fuse_common.h>
 
