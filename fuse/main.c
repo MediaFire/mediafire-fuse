@@ -28,12 +28,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+//#include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+//#include <fcntl.h>
 #include <pwd.h>
-#include <wordexp.h>
+//#include <wordexp.h>
 #include <stdbool.h>
 #include <pthread.h>
 

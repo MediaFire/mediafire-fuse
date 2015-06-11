@@ -25,8 +25,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef __linux
+#include <bits/fcntl-linux.h>
+#endif
 
 #include "../utils/hash.h"
 #include "../utils/xdelta3.h"

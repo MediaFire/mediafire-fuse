@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <stdbool.h>
+
 #include <curl/curl.h>
 
 #include "../../utils/http.h"

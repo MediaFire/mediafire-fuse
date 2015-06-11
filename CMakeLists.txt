@@ -112,7 +112,37 @@ add_executable(mediafire-fuse
 	fuse/main.c
 	fuse/hashtbl.c
 	fuse/filecache.c
-	fuse/operations.c)
+	fuse/operations/access.c
+    fuse/operations/chmod.c
+    fuse/operations/chown.c
+    fuse/operations/create.c
+    fuse/operations/destroy.c
+    fuse/operations/flush.c
+    fuse/operations/fsync.c
+    fuse/operations/fsyncdir.c
+    fuse/operations/getattr.c
+    fuse/operations/getxattr.c
+    fuse/operations/link.c
+    fuse/operations/mkdir.c
+    fuse/operations/mknod.c
+    fuse/operations/open.c
+    fuse/operations/opendir.c
+    fuse/operations/read.c
+    fuse/operations/readdir.c
+    fuse/operations/readlink.c
+    fuse/operations/release.c
+    fuse/operations/releasedir.c
+    fuse/operations/removexattr.c
+    fuse/operations/listxattr.c
+    fuse/operations/rename.c
+    fuse/operations/rmdir.c
+    fuse/operations/setxattr.c
+    fuse/operations/statfs.c
+    fuse/operations/symlink.c
+    fuse/operations/truncate.c
+    fuse/operations/unlink.c
+    fuse/operations/utimens.c
+    fuse/operations/write.c)
 target_link_libraries(mediafire-fuse mfapi mfutils ${CMAKE_THREAD_LIBS_INIT} ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES})
 
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})

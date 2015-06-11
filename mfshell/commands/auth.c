@@ -21,12 +21,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "../mfshell.h"
-#include "../options.h"
 #include "../../utils/strings.h"
-#include "../../utils/http.h"
+//#include "../../utils/http.h"
 #include "../../mfapi/mfconn.h"
+
+#include "../mfshell.h"
+//#include "../options.h"
 #include "../commands.h"        // IWYU pragma: keep
+
 
 int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
 {

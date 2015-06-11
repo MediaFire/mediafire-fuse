@@ -20,13 +20,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "../../utils/http.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
 int mfconn_api_file_update(mfconn * conn, const char *quickkey,
-                           const char *filename, const char *mtime, bool truncate)
+                            const char *filename, const char *mtime,
+                            bool truncate)
 {
     const char     *api_call;
     int             retval;

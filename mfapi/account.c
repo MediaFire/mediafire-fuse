@@ -23,10 +23,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/sha.h>
+//#include <openssl/sha.h>
 
 #include "account.h"
-#include "apicalls.h"
+//#include "apicalls.h"
 
 struct _account_s
 {

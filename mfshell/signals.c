@@ -17,7 +17,7 @@
  */
 
 #include <signal.h>
-#include <stdio.h>
+// #include <stdio.h>
 
 void signal_sigwinch(int signo)
 {

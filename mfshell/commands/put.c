@@ -23,12 +23,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libgen.h>
+#include <stdbool.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../../mfapi/mfconn.h"
-#include "../mfshell.h"
 #include "../../mfapi/folder.h"
 #include "../commands.h"        // IWYU pragma: keep
+#include "../mfshell.h"
+
 
 int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
 {

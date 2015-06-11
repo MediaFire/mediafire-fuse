@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/ioctl.h>
+
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/folder.h"

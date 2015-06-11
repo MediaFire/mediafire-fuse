@@ -29,8 +29,9 @@
 #include <fcntl.h>
 #include <wordexp.h>
 #include <string.h>
+#include <stddef.h>
 
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "config.h"

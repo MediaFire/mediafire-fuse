@@ -21,6 +21,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include <stdio.h>
+
 /*
    find the mediafire-tools configuration file.  if it doesn't exist
    create one.

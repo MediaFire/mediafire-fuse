@@ -19,9 +19,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <inttypes.h>
+//#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include <sys/types.h>
 #include <sys/statvfs.h>
