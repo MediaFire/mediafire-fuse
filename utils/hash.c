@@ -24,9 +24,10 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <string.h>
+#include <stdbool.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <sys/stat.h>       // IWUY pragma: keep
+//#include <sys/types.h>
 
 #include <openssl/sha.h>
 #include <openssl/md5.h>

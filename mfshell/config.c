@@ -21,11 +21,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pwd.h>
-#include <unistd.h>
-#include <wordexp.h>
+//#include <pwd.h>
+//#include <unistd.h>
+//#include <wordexp.h>
 #include <string.h>
-#include <stddef.h>
+//#include <stddef.h>
 #include <getopt.h>
 
 #include "config.h"

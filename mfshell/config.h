@@ -19,9 +19,9 @@
 #ifndef _MFSHELL_CONFIG_H_
 #define _MFSHELL_CONFIG_H_
 
-#include <stdio.h>
+//#include <stdio.h>
 
-#include "options.h"
+#include "options.h"        // IWYU pragma: keep
 
 void    parse_config(char *configfile,struct mfshell_user_options *opts);
 

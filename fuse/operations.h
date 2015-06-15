@@ -36,6 +36,23 @@ struct fuse_file_info;
 struct stat;
 struct statvfs;
 
+struct mediafirefs_openfile
+{
+    // to fread and fwrite from/to the file
+    int             fd;
+    char           *path;
+
+    // whether or not a patch has to be uploaded when closing
+    bool            is_readonly;
+
+    // whether or not to do a new file upload when closing
+    bool            is_local;
+
+    // is true if file has been updated since last flush
+    bool            is_flushed;
+};
+
+
 struct mediafirefs_context_private
 {
     mfconn              *conn;
