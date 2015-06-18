@@ -28,12 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-//#include <fcntl.h>
 #include <pwd.h>
-//#include <wordexp.h>
 #include <stdbool.h>
 #include <pthread.h>
 
@@ -222,6 +219,7 @@ static void parse_arguments(int *argc, char ***argv,
     }
 
     struct fuse_opt mediafirefs_opts_snd[] = {
+
         {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
         {"--config %s", offsetof(struct mediafirefs_user_options, configfile),
          0},
@@ -237,10 +235,7 @@ static void parse_arguments(int *argc, char ***argv,
         {"-k %s", offsetof(struct mediafirefs_user_options, api_key), 0},
         {"--api-key %s", offsetof(struct mediafirefs_user_options, api_key),
          0},
-        // {"-l", offsetof(struct mediafirefs_user_options,
-        // http_flags), 0},
-        //{"--lazy-ssl", offsetof(struct mediafirefs_user_options,
-        // http_flags), 0},
+
         FUSE_OPT_KEY("-l", KEY_LAZY_SSL),
         FUSE_OPT_KEY("--lazy-ssl", KEY_LAZY_SSL),
         FUSE_OPT_END
@@ -292,6 +287,7 @@ static void open_hashtbl(const char *dircache, const char *filecache,
 
     fp = fopen(dircache, "r");
     if (fp != NULL) {
+
         // file exists
         fprintf(stderr, "loading hashtable from %s\n", dircache);
 
