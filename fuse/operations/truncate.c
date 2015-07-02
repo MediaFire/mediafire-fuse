@@ -52,7 +52,8 @@
 
 int mediafirefs_truncate(const char *path, off_t length)
 {
-    printf("FUNCTION: truncate. path: %s, length: %zd\n", path, length);
+    printf("FUNCTION: truncate. path: %s, length: %zd\n",
+                path, (size_t)length);
 
     int             retval;
 
