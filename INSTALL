@@ -1,0 +1,35 @@
+UBUNTU 14.04 LTS
+
+Building on Ubuntu 14.04 LTS is pretty straightforward.  If you start with
+minimalistic server install, then you will need to install a few
+dependencies using the Apt package manager.  If you are logged in as an
+unprivledged user (not root), the following should statisfy all of the
+requirements.
+
+sudo apt-get install cmake
+sudo apt-get install g++
+sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install libfuse-dev
+sudo apt-get install libjansson-dev
+
+After installing these, continue with the instructions for compiling
+and configuring in the README.md
+
+
+MOUNTING AT BOOT TIME
+
+If you would like for the mediafire-fuse module to mount your remote
+filesystem at boot-time, you will need to follow these instructions.
+
+Put the following in your /etc/fstab:
+
+/usr/bin/mediafire-fuse /mountpoint fuse user,noauto 0 0
+
+NOTE:  The noauto option is necessary because this will fail otherwise
+when auto mounting on boot. The user option allows you to run mount
+as non-root. You can then mount using the following command:
+
+XDG_CONFIG_HOME=/home/username/.config XDG_CACHE_HOME=/home/username/.cache mount /mountpoint
+
+Setting these two environment variables will ensure that mediafire-fuse
+will use the right directories for the config and cache.
