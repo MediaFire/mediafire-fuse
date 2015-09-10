@@ -26,6 +26,7 @@
 #include <fuse/fuse_opt.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -46,7 +47,12 @@ enum {
     KEY_HELP,
     KEY_VERSION,
     KEY_LAZY_SSL,
+    KEY_USERNAME,
+    KEY_PASSWORD,
 };
+
+#define ARG_SET_USERNAME    (1 << 0)
+#define ARG_SET_PASSWORD    (1 << 1)
 
 struct mediafirefs_user_options
 {
@@ -58,6 +64,7 @@ struct mediafirefs_user_options
     char                *api_key;
 
     unsigned int        http_flags;
+    unsigned int        arg_flags;
 };
 
 static struct fuse_operations mediafirefs_oper = {
@@ -95,6 +102,105 @@ static struct fuse_operations mediafirefs_oper = {
     .utimens = mediafirefs_utimens,
 };
 
+// START of provate helper function prototypes
+
+static void
+parse_arguments(int *argc, char ***argv,
+                struct mediafirefs_user_options *options, char *configfile);
+
+static void
+connect_mf(struct mediafirefs_user_options *options, mfconn ** conn);
+
+static void
+setup_cache_dir(const char *ekey, char **dircache, char **filecache);
+
+static void
+open_hashtbl(const char *dircache, const char *filecache,
+                         mfconn * conn, folder_tree ** tree);
+
+
+// END of provate helper function prototypes
+
+
+int main(int argc, char *argv[])
+{
+    int             ret,
+                    i;
+    struct mediafirefs_context_private      *ctx;
+
+    struct mediafirefs_user_options options = {
+        NULL, NULL, NULL, NULL, -1, NULL, 0, 0,
+    };
+
+    pthread_mutexattr_t     mutex_attr;
+
+    ctx = calloc(1, sizeof(struct mediafirefs_context_private));
+
+    config_file_init(&(ctx->configfile));
+
+    parse_arguments(&argc, &argv, &options, ctx->configfile);
+
+    if (options.username == NULL) {
+        printf("login: ");
+        options.username = string_line_from_stdin(false);
+    }
+
+    // handle usename being set at command line (alt credentials)
+    if (options.arg_flags & ARG_SET_USERNAME)
+    {
+        // user didn't specify alt password
+        if (!(options.arg_flags & ARG_SET_PASSWORD))
+        {
+            printf("passwd: ");
+            options.password = string_line_from_stdin(true);
+        }
+    }
+
+    // username stored in config file but password not supplied anywhere
+    if (options.password == NULL)
+    {
+        printf("passwd: ");
+        options.password = string_line_from_stdin(true);
+    }
+
+    connect_mf(&options, &(ctx->conn));
+
+    setup_cache_dir(mfconn_get_ekey(ctx->conn), &(ctx->dircache),
+                    &(ctx->filecache));
+
+    open_hashtbl(ctx->dircache, ctx->filecache, ctx->conn, &(ctx->tree));
+
+    ctx->sv_writefiles = stringv_alloc();
+    ctx->sv_readonlyfiles = stringv_alloc();
+    ctx->last_status_check = 0;
+    ctx->interval_status_check = 60;    // TODO: make this configurable
+
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_settype(&mutex_attr,PTHREAD_MUTEX_RECURSIVE);
+
+    pthread_mutex_init(&(ctx->mutex),
+        (const pthread_mutexattr_t*)&mutex_attr);
+
+    ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
+
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+
+    free(ctx->configfile);
+    free(ctx->dircache);
+    free(ctx->filecache);
+    stringv_free(ctx->sv_writefiles);
+    stringv_free(ctx->sv_readonlyfiles);
+    pthread_mutex_destroy(&(ctx->mutex));
+    pthread_mutexattr_destroy(&mutex_attr);
+    free(ctx);
+
+    return ret;
+}
+
+
 static void usage(const char *progname)
 {
     fprintf(stderr, "Usage %s [options] mountpoint\n"
@@ -105,7 +211,7 @@ static void usage(const char *progname)
             "    -V, --version          show version information\n"
             "\n"
             "MediaFire FS options:\n"
-            "    -o, --username str     username\n"
+            "    -u, --username str     username\n"
             "    -p, --password str     password\n"
             "    -c, --config file      configuration file\n"
             "    --server domain        server domain\n"
@@ -118,7 +224,6 @@ static void usage(const char *progname)
 }
 
 // this handler is for just for HELP and VERSION
-
 static int
 mediafirefs_opt_pre(void *data, const char *arg, int key,
                      struct fuse_args *outargs)
@@ -142,8 +247,37 @@ mediafirefs_opt_pre(void *data, const char *arg, int key,
     return 1;
 }
 
-// this handler is for the all other keys that we will not abort on
+// this handler is for command line arguments that alter the interpretation
+// of the config file.
 
+static int
+mediafirefs_opt_second(void *data, const char *arg, int key,
+                     struct fuse_args *outargs)
+{
+    struct mediafirefs_user_options     *options;
+
+    (void)arg;                  // unused
+    (void)outargs;              // unused
+
+    options = (struct mediafirefs_user_options*)data;
+
+    if (key == KEY_USERNAME)
+    {
+        fprintf(stderr, "[II] using alt credentials.\n");
+        options->arg_flags |= ARG_SET_USERNAME;
+    }
+
+    if (key == KEY_PASSWORD)
+    {
+        options->arg_flags |= ARG_SET_PASSWORD;
+    }
+
+    // return 1 to not discard arg from the argv vector
+    return 1;
+}
+
+
+// this handler is for the all other keys that we will not abort on
 static int
 mediafirefs_opt_post(void *data, const char *arg, int key,
                      struct fuse_args *outargs)
@@ -165,25 +299,30 @@ mediafirefs_opt_post(void *data, const char *arg, int key,
     return 1;
 }
 
-static void parse_arguments(int *argc, char ***argv,
-                            struct mediafirefs_user_options *options,
-                            char *configfile)
+static void
+parse_arguments(int *argc, char ***argv,
+                struct mediafirefs_user_options *options,
+                char *configfile)
 {
-    FILE    *file = NULL;
-    int     i;
+    struct fuse_args    args_fst = FUSE_ARGS_INIT(*argc, *argv);
+    FILE                *file = NULL;
+    int                 retval;
+    int                 i;
 
-    /* In the first pass, we only search for the help, version and config file
-     * options.
-     *
-     * In case help or version options are found, the program will display
-     * them and quit
-     *
-     * Otherwise, the program will read the config file (possibly supplied
-     * through the option being set in the first pass), prepend its arguments
-     * to argv and parse the arguments again as a second pass.
-     */
+    /*
+        In the first pass, we only search for the help, version and
+        config file options.
+
+        In case help or version options are found, the program will display
+        them and quit.
+
+        Otherwise, the program will read the config file (possibly supplied
+        through the option being set in the first pass), prepend its arguments
+        to argv and parse the arguments again as a second pass.
+    */
 
     struct fuse_opt mediafirefs_opts_fst[] = {
+
         FUSE_OPT_KEY("-h", KEY_HELP),
         FUSE_OPT_KEY("--help", KEY_HELP),
         FUSE_OPT_KEY("-V", KEY_VERSION),
@@ -194,13 +333,37 @@ static void parse_arguments(int *argc, char ***argv,
         FUSE_OPT_END
     };
 
-    struct fuse_args args_fst = FUSE_ARGS_INIT(*argc, *argv);
+    retval = fuse_opt_parse(&args_fst, options, mediafirefs_opts_fst,
+                            mediafirefs_opt_pre);
 
-    if (fuse_opt_parse
-        (&args_fst, options, mediafirefs_opts_fst,
-         mediafirefs_opt_pre) == -1) {
-        exit(1);
-    }
+    // there should always be something to parse
+    if (retval == -1) exit(1);
+
+    /*
+        These are flags we need to look for first before reading the
+        config file that indicate non-exiting conditions but alternate
+        behavior.
+
+        Currently this is only used to ignore password in the configfile
+        when username is specified on the command line.
+    */
+
+    struct fuse_opt mediafirefs_opts_second[] = {
+
+        // treate cmdline credentials like keys the 1st time for setting flag
+        FUSE_OPT_KEY("-u", KEY_USERNAME),
+        FUSE_OPT_KEY("--username", KEY_USERNAME),
+        FUSE_OPT_KEY("-p", KEY_PASSWORD),
+        FUSE_OPT_KEY("--password", KEY_PASSWORD),
+        FUSE_OPT_END
+    };
+
+    retval = fuse_opt_parse(&args_fst, options, mediafirefs_opts_second,
+                            mediafirefs_opt_second);
+
+    // there should always be something to parse
+    if (retval == -1) exit(1);
+
 
     *argc = args_fst.argc;
     *argv = args_fst.argv;
@@ -381,66 +544,3 @@ static void setup_cache_dir(const char *ekey, char **dircache,
     free((void *)usercachedir);
 }
 
-int main(int argc, char *argv[])
-{
-    int             ret,
-                    i;
-    struct mediafirefs_context_private      *ctx;
-
-    struct mediafirefs_user_options options = {
-        NULL, NULL, NULL, NULL, -1, NULL, 0,
-    };
-
-    pthread_mutexattr_t     mutex_attr;
-
-    ctx = calloc(1, sizeof(struct mediafirefs_context_private));
-
-    config_file_init(&(ctx->configfile));
-
-    parse_arguments(&argc, &argv, &options, ctx->configfile);
-
-    if (options.username == NULL) {
-        printf("login: ");
-        options.username = string_line_from_stdin(false);
-    }
-    if (options.password == NULL) {
-        printf("passwd: ");
-        options.password = string_line_from_stdin(true);
-    }
-
-    connect_mf(&options, &(ctx->conn));
-
-    setup_cache_dir(mfconn_get_ekey(ctx->conn), &(ctx->dircache),
-                    &(ctx->filecache));
-
-    open_hashtbl(ctx->dircache, ctx->filecache, ctx->conn, &(ctx->tree));
-
-    ctx->sv_writefiles = stringv_alloc();
-    ctx->sv_readonlyfiles = stringv_alloc();
-    ctx->last_status_check = 0;
-    ctx->interval_status_check = 60;    // TODO: make this configurable
-
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutexattr_settype(&mutex_attr,PTHREAD_MUTEX_RECURSIVE);
-
-    pthread_mutex_init(&(ctx->mutex),
-        (const pthread_mutexattr_t*)&mutex_attr);
-
-    ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
-
-    for (i = 0; i < argc; i++) {
-        free(argv[i]);
-    }
-    free(argv);
-
-    free(ctx->configfile);
-    free(ctx->dircache);
-    free(ctx->filecache);
-    stringv_free(ctx->sv_writefiles);
-    stringv_free(ctx->sv_readonlyfiles);
-    pthread_mutex_destroy(&(ctx->mutex));
-    pthread_mutexattr_destroy(&mutex_attr);
-    free(ctx);
-
-    return ret;
-}
