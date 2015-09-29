@@ -87,8 +87,9 @@ options, run it with the `--help` argument. For a list of available commands,
 run the `help` command either in interactive mode or by giving it to the `-c`
 argument.
 
-When running a command using the `-c` argument, you need to enclose the command in quotes,
-especially ig the command you're trying to run needs arguments, e.g.
+When running a command using the `-c` argument, you need to enclose the
+command in quotes, especially if the command you're trying to run needs
+arguments, e.g.
 
 `mediafire-shell -c "put file"`
 
