@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(mediafire-tools)
+set(mediafire-tools_MAJOR_VERSION 0)
+set(mediafire-tools_MINOR_VERSION 90)
+set(mediafire-tools_VERSION
+    ${mediafire-tools_MAJOR_VERSION}.${mediafire-tools_MINOR_VERSION})
 
 # creates file compile_commands.json in build directory which is used
 # to feed iwyu during tests
@@ -151,3 +155,18 @@ add_test(valgrind_fuse ${CMAKE_SOURCE_DIR}/tests/valgrind_fuse.sh ${CMAKE_SOURCE
 add_test(valgrind_shell ${CMAKE_SOURCE_DIR}/tests/valgrind_shell.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 install (TARGETS mediafire-fuse mediafire-shell DESTINATION bin)
+
+SET(CPACK_GENERATOR "DEB")
+
+#generator independent vars
+SET(CPACK_PACKAGE_VERSION ${mediafire-tools_VERSION})
+SET(CPACK_PACKAGE_DESCRIPTION "FUSE module and cli tools for MediaFire")
+SET(CPACK_PACKAGE_VENDOR "MediaFire")
+SET(CPACK_PACKAGE_CONTACT "Bryan Christ")
+SET(CPACK_PACKAGE_FILE_NAME "mediafire-tools-${CPACK_PACKAGE_VERSION}-linux-${CMAKE_SYSTEM_PROCESSOR}")
+
+SET(CPACK_DEBIAN_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libcurl (>= 7.22.0), libfuse (>= 2.8.6), libjansson4 (>= 2.2.0) ")
+
+
+INCLUDE(CPack)
