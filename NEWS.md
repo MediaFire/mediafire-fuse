@@ -1,3 +1,9 @@
+Oct 06, 2015
+============
+
+The CMake system will now build debian packages using the CPack system.
+
+
 Sep 10, 2015
 ============
 
