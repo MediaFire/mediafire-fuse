@@ -90,7 +90,7 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell->local_working_dir == NULL) {
         mfshell->local_working_dir =
             (char *)calloc(PATH_MAX + 1, sizeof(char));
-        getcwd(mfshell->local_working_dir, PATH_MAX);
+        (void*)getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 
     file_name = file_get_name(file);
