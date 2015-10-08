@@ -16,6 +16,11 @@ override_dh_auto_configure:
 override_dh_auto_build:
 		cd build; make
 override_dh_auto_install:
-		cd build; make install 
+		mkdir -p debian/mediafire-fuse/usr/local/bin/; 
+		cd build; make install DESTDIR=debian/usr/local/bin
+		#cp build/mediafire-fuse debian/mediafire-fuse/usr/local/bin/
+		#cp build/mediafire-shell debian/mediafire-fuse/usr/local/bin/
+		# cd build; make install 
+override_dh_usrlocal:
 override_dh_auto_clean:
 		rm -rf build

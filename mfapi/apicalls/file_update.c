@@ -30,11 +30,11 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
                             const char *filename, const char *mtime,
                             bool truncate)
 {
-    const char     *api_call;
+    const char      *api_call = NULL;
     int             retval;
-    mfhttp         *http;
+    mfhttp          *http;
     int             i;
-    char           *filename_urlenc = NULL;
+    char            *filename_urlenc = NULL;
 
     if (conn == NULL)
         return -1;
@@ -121,7 +121,11 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
 
         mfconn_update_secret_key(conn);
 
-        free((void *)api_call);
+        if(api_call != NULL)
+        {
+            free((void *)api_call);
+            api_call = NULL;
+        }
 
         if (retval != 127 && retval != 28)
             break;

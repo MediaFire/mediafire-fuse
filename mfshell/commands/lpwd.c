@@ -26,10 +26,14 @@
 
 #include "../mfshell.h"
 #include "../commands.h"        // IWYU pragma: keep
+#include "../../utils/helpers.h"
 
 int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char *const argv[])
 {
+    retval_t    retval;
+
     (void)argv;
+
     if (mfshell == NULL)
         return -1;
 
@@ -41,7 +45,10 @@ int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell->local_working_dir == NULL) {
         mfshell->local_working_dir =
             (char *)calloc(PATH_MAX + 1, sizeof(char));
-        getcwd(mfshell->local_working_dir, PATH_MAX);
+
+        retval.s = getcwd(mfshell->local_working_dir, PATH_MAX);
+
+        if(retval.s == NULL) return -1;
     }
 
     printf("%s\n\r", mfshell->local_working_dir);

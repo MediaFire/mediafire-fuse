@@ -28,11 +28,11 @@
 int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
                              const char *foldername, const char *mtime)
 {
-    const char     *api_call;
+    const char      *api_call = NULL;
     int             retval;
-    mfhttp         *http;
+    mfhttp          *http;
     int             i;
-    char           *foldername_urlenc = NULL;
+    char            *foldername_urlenc = NULL;
 
     if (conn == NULL)
         return -1;
@@ -109,7 +109,11 @@ int mfconn_api_folder_update(mfconn * conn, const char *folder_key,
 
         mfconn_update_secret_key(conn);
 
-        free((void *)api_call);
+        if(api_call != NULL)
+        {
+            free((void *)api_call);
+            api_call = NULL;
+        }
 
         if (retval != 127 && retval != 28)
             break;

@@ -28,6 +28,7 @@
 #include "../mfshell.h"
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
+#include "../../utils/helpers.h"
 
 static char    *_get_host_from_user(void);
 
@@ -73,13 +74,18 @@ int mfshell_cmd_host(mfshell * mfshell, int argc, char *const argv[])
     return 0;
 }
 
-char           *_get_host_from_user(void)
+char *
+_get_host_from_user(void)
 {
     size_t          len = 0;
     char           *host = NULL;
+    retval_t        retval;
 
     printf("host: [www.mediafire.com] ");
-    getline(&host, &len, stdin);
+
+    retval.i = (int)getline(&host, &len, stdin);
+    if(retval.i == 0) return NULL;
+
     if (host[strlen(host) - 1] == '\n')
         host[strlen(host) - 1] = '\0';
 

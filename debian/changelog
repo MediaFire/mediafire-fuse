@@ -1,4 +1,4 @@
-mediafire-fuse (0.6-1) trusty; urgency=low
+mediafire-fuse (0.9-1) trusty; urgency=low
 
   * Initial release (Closes: #8181)
 

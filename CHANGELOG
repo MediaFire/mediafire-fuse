@@ -1,3 +1,11 @@
+0.91
+
+* [Bryan Christ] Added CMake rules for genrating deb packages with CPack.
+
+0.90
+
+* [Bryan Christ] Fixed a long-standing bug with multiple account login.
+
 0.60
 
 * [Bryan Christ] added the get command for single file download
