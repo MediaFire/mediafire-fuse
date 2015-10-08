@@ -30,16 +30,9 @@
 #include "../mfshell.h"
 #include "../../mfapi/file.h"
 #include "../commands.h"        // IWYU pragma: keep
+#include "../../utils/helpers.h"
 #include "../../utils/strings.h"
 #include "../../utils/http.h"
-
-typedef union _retval_u     retval_t;
-
-union _retval_u
-{
-    int     i;
-    char    *c;
-};
 
 int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 {
@@ -100,7 +93,7 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
         mfshell->local_working_dir =
             (char *)calloc(PATH_MAX + 1, sizeof(char));
 
-        retval.c = getcwd(mfshell->local_working_dir, PATH_MAX);
+        retval.s = getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 
     file_name = file_get_name(file);
