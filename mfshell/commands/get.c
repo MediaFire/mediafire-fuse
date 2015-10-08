@@ -33,18 +33,26 @@
 #include "../../utils/strings.h"
 #include "../../utils/http.h"
 
+typedef union _retval_u     retval_t;
+
+union _retval_u
+{
+    int     i;
+    char    *c;
+}
+
 int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 {
-    mffile         *file;
+    mffile          *file;
     int             len;
-    int             retval;
+    retval_t        retval;
     ssize_t         bytes_read;
-    const char     *quickkey;
-    const char     *file_path;
-    const char     *file_name;
-    const char     *url;
+    const char      *quickkey;
+    const char      *file_path;
+    const char      *file_name;
+    const char      *url;
     struct stat     file_info;
-    mfhttp         *http;
+    mfhttp          *http;
 
     if (mfshell == NULL)
         return -1;
@@ -71,26 +79,28 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     file = file_alloc();
 
     // get file name
-    retval = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
+    retval.i = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
 
-    if (retval != 0) {
+    if (retval.i != 0) {
         file_free(file);
         return -1;
     }
     // request a direct download (streaming) link
-    retval = mfconn_api_file_get_links(mfshell->conn, file,
+    retval.i = mfconn_api_file_get_links(mfshell->conn, file,
                                        (char *)quickkey,
                                        MFCONN_FILE_LINK_TYPE_DIRECT_DOWNLOAD);
 
-    if (retval != 0) {
+    if (retval.i != 0) {
         file_free(file);
         return -1;
     }
     // make sure we have a valid working directory to download to
-    if (mfshell->local_working_dir == NULL) {
+    if (mfshell->local_working_dir == NULL)
+    {
         mfshell->local_working_dir =
             (char *)calloc(PATH_MAX + 1, sizeof(char));
-        (void*)getcwd(mfshell->local_working_dir, PATH_MAX);
+
+        retval.c = getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 
     file_name = file_get_name(file);
@@ -106,18 +116,18 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
         return -1;
 
     http = http_create();
-    retval = http_get_file(http, url, file_path);
+    retval.i = http_get_file(http, url, file_path);
     http_destroy(http);
 
-    if (retval != 0)
+    if (retval.i != 0)
         return -1;
 
     memset(&file_info, 0, sizeof(file_info));
-    retval = stat(file_path, &file_info);
+    retval.i = stat(file_path, &file_info);
 
     free((void *)file_path);
 
-    if (retval != 0)
+    if (retval.i != 0)
         return -1;
 
     bytes_read = file_info.st_size;
