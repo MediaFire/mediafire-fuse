@@ -39,7 +39,7 @@ union _retval_u
 {
     int     i;
     char    *c;
-}
+};
 
 int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 {
