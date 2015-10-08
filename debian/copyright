@@ -1,0 +1,14 @@
+Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135
+Name: MediaFire
+Maintainer: Adrian Alves <aalves@gmail.com>
+Source: mediafire.com
+Upstream-Name: mediafire-fuse
+
+Copyright: 2009-2015 MediaFire, Inc.
+License: GPLv2
+
+Files *
+Copyright: 2009-2012 MediaFire, Inc.
+License: GPLv2
+
+

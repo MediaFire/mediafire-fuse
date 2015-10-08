@@ -1,0 +1,5 @@
+mediafire-fuse (0.6-1) trusty; urgency=low
+
+  * Initial release (Closes: #8181)
+
+ -- Adrian Alves <aalves@gmail.com>  Wed, 07 Oct 2015 19:32:56 -0800
