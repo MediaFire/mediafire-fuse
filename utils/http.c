@@ -342,7 +342,8 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDSIZE, filesize);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDSIZE_LARGE,
+                    (curl_off_t)filesize);
 
     conn->stream = fh;
     // fprintf(stderr, "POST: %s\n", url);
