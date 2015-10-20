@@ -1,8 +1,9 @@
 News
 ====
 
-Significant update to master on June 4, 2015.  Check [here](https://github.com/MediaFire/mediafire-fuse/blob/master/NEWS.md) for details.
+10.20.2015 - Pre-built binaries avaiable.  See below.
 
+06.04.2015 - Significant update to master.  Check [here](https://github.com/MediaFire/mediafire-fuse/blob/master/NEWS.md) for details.
 
 About
 =====
@@ -24,6 +25,11 @@ re redistributed and/or modified under the terms of the GNU General Public
 License version 2.
 
 For the exact terms of the license, see `COPYING`.
+
+Binary Install
+==============
+
+Packages for Debian, Ubuntu, Centos, and RHEL, can be found [here](https://www.mediafire.com/folder/1h35kd1t3t7j7/fuse-client)
 
 Compiling
 =========
