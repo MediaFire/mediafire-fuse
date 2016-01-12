@@ -19,6 +19,8 @@
 
 #define _POSIX_C_SOURCE 200809L // for strdup
 #define _DEFAULT_SOURCE         // for strdup on old systems
+#define _XOPEN_SOURCE_EXTENDED  // for strdup on uClibc systems
+
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
