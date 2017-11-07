@@ -10,7 +10,7 @@ set(mediafire-tools_VERSION
 # to feed iwyu during tests
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall")
 
 if (("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") OR (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") AND (CMAKE_C_COMPILER_VERSION VERSION_GREATER 4.0)))
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
